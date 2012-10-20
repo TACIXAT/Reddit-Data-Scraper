@@ -23,7 +23,7 @@ if(verbose):
 #load or create file
 def loadFile():
 	today = datetime.datetime.now()
-	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.csv'
+	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
 	ffname = './data/' + sfname
 	hasMatch = False
 	flist = os.listdir('./data')
