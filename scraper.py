@@ -3,9 +3,9 @@ import urllib2
 import os
 import datetime
 
-#declares
+#global declares
 verbose = True
-target = "http://www.reddit.com/r/AskReddit/new/.json?limit=25"
+target = "http://www.reddit.com/r/AskReddit/new/.json?limit=25&count=25&after=t3_"
 targetPost = "http://www.reddit.com/comments/11s7ie/WUT_HERE/c6p4gzh.json"
 posts = {}
 kindList = {'t1' : 'comment',
@@ -31,8 +31,8 @@ def loadFile():
 	flist = os.listdir('./data')
 	
 	#if today exists, set flag true
-	for ea in flist:
-		if ea == sfname:
+	for item in flist:
+		if item == sfname:
 			hasMatch = True
 			break
 	
@@ -44,8 +44,8 @@ def loadFile():
 		f = open(ffname)
 		loaded = json.load(f)
 		#load json into posts
-		for ea in loaded:
-			posts[ea] = loaded[ea]
+		global posts 
+		posts = loaded
 	#else create file
 	else:
 		if verbose:
@@ -67,7 +67,9 @@ def writeFile():
 	
 #open URL
 def fetchJSON(URL):
-	req = urllib2.Request(URL, None, headers)
+	keys = sorted(posts.keys())
+	last = keys[0]
+	req = urllib2.Request(URL+last, None, headers)
 	response = urllib2.urlopen(req)
 	
 	if verbose:
@@ -107,13 +109,12 @@ def pageprint():
 	for i in range(0,len(labels)):
 		if i not in skipList:
 			print labels[i].rjust(widths[i]),
-		
 	print
 	
-	for ea in posts:
-		for i in range(0,len(posts[ea])):
+	for key in sorted(posts.keys()):
+		for i in range(0,len(posts[key])):
 			if i not in skipList:
-				print str(posts[ea][labels[i]]).rjust(widths[i]),
+				print str(posts[key][labels[i]]).rjust(widths[i]),
 		print
 
 #main
