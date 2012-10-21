@@ -3,8 +3,9 @@ import urllib2
 import os
 import datetime
 
+#declares
 verbose = True
-target = "http://www.reddit.com/r/AskReddit/new/.json?limit=100"
+target = "http://www.reddit.com/r/AskReddit/new/.json?limit=25"
 targetPost = "http://www.reddit.com/comments/11s7ie/WUT_HERE/c6p4gzh.json"
 posts = {}
 kindList = {'t1' : 'comment',
@@ -13,7 +14,7 @@ kindList = {'t1' : 'comment',
 			't4' : 'message',
 			't5' : 'subreddit'}
 labels = ["ID", "User", "Total", "Ups", "Downs", "Link", "OP", "Parent", "Highest", "Depth", "Timestamp", "Celebrity", "Title", "Content"]
-						
+					
 
 #set User-Agent
 headers = {'User-Agent' : 'scrapin\' on my scraper bot\\Ubuntu 12.04 64\\Python\\user robot_one'}
@@ -22,27 +23,45 @@ if(verbose):
 	
 #load or create file
 def loadFile():
+	#data, short file name, full file name, flag file exists, ls dir
 	today = datetime.datetime.now()
 	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
 	ffname = './data/' + sfname
 	hasMatch = False
 	flist = os.listdir('./data')
 	
+	#if today exists, set flag true
 	for ea in flist:
 		if ea == sfname:
 			hasMatch = True
 			break
 	
+	#if today exists
 	if hasMatch:
 		if verbose:
 			print 'File match found.\nLoading json.'
-			
+		#load file
 		f = open(ffname)
-		#read json
+		loaded = json.load(f)
+		#load json into posts
+		for ea in loaded:
+			posts[ea] = loaded[ea]
+	#else create file
 	else:
 		if verbose:
 			print 'No match found.\nCreating file.'
 		f = open(ffname, 'w')
+	
+	f.close()
+
+#dump json	
+def writeFile():
+	today = datetime.datetime.now()
+	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
+	ffname = './data/' + sfname
+	f = open(ffname, 'w')
+	
+	f.write(json.dumps(posts, indent=4))
 	
 	f.close()
 	
@@ -101,17 +120,16 @@ def pageprint():
 def main():
 	#load file if exists
 	loadFile()
-	return 0
+
 	#loop page fetch for 1000
 	page = fetchJSON(target)
-		#print json.dumps(page, indent=4)
-		#return 0
 	updatePosts(page)
-	
-	#output pages fetched to a file
-	pageprint()
-	
-	print len(posts)
 
-		
+	#output pages fetched to a file
+	writeFile()
+	
+	#nice columns of data
+	pageprint()
+	print len(posts)
+	
 main()
