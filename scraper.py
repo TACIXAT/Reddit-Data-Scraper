@@ -2,10 +2,11 @@ import json
 import urllib2
 import os
 import datetime
+from time import sleep
 
 #global declares
 verbose = True
-target = "http://www.reddit.com/r/AskReddit/new/.json?limit=25&count=25&after=t3_"
+target = "http://www.reddit.com/r/AskReddit/new/.json?sort=new"
 targetPost = "http://www.reddit.com/comments/11s7ie/WUT_HERE/c6p4gzh.json"
 posts = {}
 kindList = {'t1' : 'comment',
@@ -56,6 +57,8 @@ def loadFile():
 
 #dump json	
 def writeFile():
+	if verbose:
+		print 'Writing to file.'
 	today = datetime.datetime.now()
 	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
 	ffname = './data/' + sfname
@@ -67,9 +70,7 @@ def writeFile():
 	
 #open URL
 def fetchJSON(URL):
-	keys = sorted(posts.keys())
-	last = keys[0]
-	req = urllib2.Request(URL+last, None, headers)
+	req = urllib2.Request(URL, None, headers)
 	response = urllib2.urlopen(req)
 	
 	if verbose:
@@ -80,27 +81,31 @@ def fetchJSON(URL):
 
 #move json into posts
 def updatePosts(page):
+	if verbose:
+		print 'Adding json page listings to posts object.'
+	#print json.dumps(page, indent=4)
 	for child in page['data']['children']:
 		data = child['data']
 		if data['id'] not in posts:		
 			posts[data['id']] = {
-						'ID':data['id'], 
-						'User':data['author'], 
-						'Total':data['score'], 
-						'Ups':data['ups'], 
-						'Downs':data['downs'], 
-						'Link':True, 
-						'OP':True, 
-						'Parent':None, 
-						'Highest':None, 
-						'Depth':None,
-						'Timestamp':data['created_utc'],
-						'Celebrity':False,
-						'Title':None,
-						'Content':None}
+				'ID':data['id'], 
+				'User':data['author'], 
+				'Total':data['score'], 
+				'Ups':data['ups'], 
+				'Downs':data['downs'], 
+				'Link':True, 
+				'OP':True, 
+				'Parent':None, 
+				'Highest':None, 
+				'Depth':None,
+				'Timestamp':data['created_utc'],
+				'Celebrity':False,
+				'Title':None,
+				'Content':None}
 		else:
-			i = 0
-			#update values
+			posts[data['id']]['Total'] = data['score'] 
+			posts[data['id']]['Ups'] = data['ups']
+			posts[data['id']]['Downs'] = data['downs'] 
 
 #print format			
 def pageprint():
@@ -121,11 +126,17 @@ def pageprint():
 def main():
 	#load file if exists
 	loadFile()
-
-	#loop page fetch for 1000
-	page = fetchJSON(target)
-	updatePosts(page)
-
+	
+	while datetime.datetime.now().day == 21 and datetime.datetime.now().hour <= 10:
+		if verbose:
+			print 'Sleeping 35 at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
+		sleep(35)
+		page = fetchJSON(target)
+		updatePosts(page)
+		if datetime.datetime.now().minute % 10 == 0:
+			writeFile()
+		if verbose:
+			print len(posts)			
 	#output pages fetched to a file
 	writeFile()
 	
