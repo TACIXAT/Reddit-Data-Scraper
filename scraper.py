@@ -15,12 +15,13 @@ kindList = {'t1' : 'comment',
 			't4' : 'message',
 			't5' : 'subreddit'}
 labels = ["ID", "User", "Total", "Ups", "Downs", "Link", "OP", "Parent", "Highest", "Depth", "Timestamp", "Celebrity", "Title", "Content"]
-					
+log = open('out.txt', 'a', 1)					
 
 #set User-Agent
 headers = {'User-Agent' : 'scrapin\' on my scraper bot\\Ubuntu 12.04 64\\Python\\user robot_one'}
 if(verbose):
 	print "User-Agent: %s" % headers['User-Agent']
+	log.write("User-Agent: %s\n" % headers['User-Agent'])
 	
 #load or create file
 def loadFile():
@@ -41,6 +42,7 @@ def loadFile():
 	if hasMatch:
 		if verbose:
 			print 'File match found.\nLoading json.'
+			log.write('File match found.\nLoading json.\n')
 		#load file
 		f = open(ffname)
 		loaded = json.load(f)
@@ -51,6 +53,7 @@ def loadFile():
 	else:
 		if verbose:
 			print 'No match found.\nCreating file.'
+			log.write('No match found.\nCreating file.\n')
 		f = open(ffname, 'w')
 	
 	f.close()
@@ -59,6 +62,7 @@ def loadFile():
 def writeFile():
 	if verbose:
 		print 'Writing to file.'
+		log.write('Writing to file.\n')
 	today = datetime.datetime.now()
 	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
 	ffname = './data/' + sfname
@@ -71,10 +75,25 @@ def writeFile():
 #open URL
 def fetchJSON(URL):
 	req = urllib2.Request(URL, None, headers)
-	response = urllib2.urlopen(req)
+	
+	try:
+		response = urllib2.urlopen(req)
+	except urllib2.HTTPError, e:
+		print e.code
+		log.write(str(e.code))
+		log.write('\n')
+		sleep(10)
+		return -1
+	except urllib2.URLError, e:
+		print e.args
+		log.write(str(e.args))
+		log.write('\n')
+		sleep(10)
+		return -1
 	
 	if verbose:
 		print 'Response received.'
+		log.write('Response received.\n')
 	
 	jsonpage = json.load(response)
 	return jsonpage
@@ -83,6 +102,7 @@ def fetchJSON(URL):
 def updatePosts(page):
 	if verbose:
 		print 'Adding json page listings to posts object.'
+		log.write('Adding json page listings to posts object.\n')
 	#print json.dumps(page, indent=4)
 	for child in page['data']['children']:
 		data = child['data']
@@ -128,18 +148,24 @@ def main():
 	loadFile()
 	
 	while datetime.datetime.now().day == 21 and datetime.datetime.now().hour <= 10:
-		if verbose:
-			print 'Sleeping 35 at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
-		sleep(35)
 		page = fetchJSON(target)
+		
+		while page == -1:
+			page = fetchJSON(target)
+			
 		updatePosts(page)
 		if datetime.datetime.now().minute % 10 == 0:
 			writeFile()
 		if verbose:
-			print len(posts)			
+			print len(posts)		
+			log.write("%d\n" % len(posts))
+			print 'Sleeping 35 at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
+			log.write('Sleeping 35 at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
+
+		sleep(35)	
 	#output pages fetched to a file
 	writeFile()
-	
+	log.close()
 	#nice columns of data
 	pageprint()
 	print len(posts)
