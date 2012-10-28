@@ -158,6 +158,7 @@ def getComments():
 				metaList = commentQ.pop()
 				clist = metaList['comments']
 				for link in cList:
+					start = datetime.datetime.now()
 					postURL = "http://www.reddit.com/comments/" + link + ".json?sort=top&limit=500"
 					postJSON = fetchJSON(postURL)
 					loadedComments = postJSON[1]['data']['children']
@@ -165,7 +166,11 @@ def getComments():
 					loadedAuthor = [0]['data']['children'][0]['data']['author']
 					initialDepth = metaList['depth']
 					commentQ.append(parsePost(loadedComments, loadedLinkID, loadedAuthor, initialDepth))
-				
+					finish = datetime.datetime.now()
+					delta = finish-start
+					if(delta.seconds < 2):
+						sleep(2)
+					
 				print len(commentQ)
 				
 #parse comments, append 'more' sections to queue					
