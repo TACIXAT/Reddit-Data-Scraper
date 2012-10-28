@@ -1,3 +1,6 @@
+#TODO
+#usernames -> number
+
 import json
 import urllib2
 import os
@@ -6,9 +9,10 @@ from time import sleep
 
 #global declares
 verbose = True
+targetPost = "http://www.reddit.com/r/AskReddit/top/.json"
 target = "http://www.reddit.com/r/AskReddit/new/.json?sort=new"
-targetPost = "http://www.reddit.com/comments/11s7ie/WUT_HERE/c6p4gzh.json"
 posts = {}
+comments = {}
 kindList = {'t1' : 'comment',
 			't2' : 'account',
 			't3' : 'link',
@@ -25,50 +29,31 @@ if(verbose):
 	
 #load or create file
 def loadFile():
-	#data, short file name, full file name, flag file exists, ls dir
 	today = datetime.datetime.now()
 	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
 	ffname = './data/' + sfname
 	hasMatch = False
 	flist = os.listdir('./data')
 	
-	#if today exists, set flag true
 	for item in flist:
 		if item == sfname:
 			hasMatch = True
 			break
 	
-	#if today exists
 	if hasMatch:
 		if verbose:
 			print 'File match found.\nLoading json.'
 			log.write('File match found.\nLoading json.\n')
-		#load file
 		f = open(ffname)
 		loaded = json.load(f)
-		#load json into posts
+
 		global posts 
 		posts = loaded
-	#else create file
 	else:
 		if verbose:
 			print 'No match found.\nCreating file.'
 			log.write('No match found.\nCreating file.\n')
 		f = open(ffname, 'w')
-	
-	f.close()
-
-#dump json	
-def writeFile():
-	if verbose:
-		print 'Writing to file.'
-		log.write('Writing to file.\n')
-	today = datetime.datetime.now()
-	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
-	ffname = './data/' + sfname
-	f = open(ffname, 'w')
-	
-	f.write(json.dumps(posts, indent=4))
 	
 	f.close()
 	
@@ -98,12 +83,12 @@ def fetchJSON(URL):
 	jsonpage = json.load(response)
 	return jsonpage
 
-#move json into posts
+#move json into dict posts
 def updatePosts(page):
 	if verbose:
 		print 'Adding json page listings to posts object.'
 		log.write('Adding json page listings to posts object.\n')
-	#print json.dumps(page, indent=4)
+	print json.dumps(page, indent=4)
 	for child in page['data']['children']:
 		data = child['data']
 		if data['id'] not in posts:		
@@ -126,6 +111,20 @@ def updatePosts(page):
 			posts[data['id']]['Total'] = data['score'] 
 			posts[data['id']]['Ups'] = data['ups']
 			posts[data['id']]['Downs'] = data['downs'] 
+	
+#dump json	
+def writeFile():
+	if verbose:
+		print 'Writing to file.'
+		log.write('Writing to file.\n')
+	today = datetime.datetime.now()
+	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
+	ffname = './data/' + sfname
+	f = open(ffname, 'w')
+	
+	f.write(json.dumps(posts, indent=4))
+	
+	f.close()
 
 #print format			
 def pageprint():
@@ -142,32 +141,104 @@ def pageprint():
 				print str(posts[key][labels[i]]).rjust(widths[i]),
 		print
 
+#fetch all the comments
+def getComments():
+	commentQ = []
+	for entry in posts:
+		if entry['Link'] is True:
+			postURL = "http://www.reddit.com/comments/" + entry['ID'] + ".json?sort=top&limit=500"
+			postJSON = fetchJSON(postURL)
+			loadedComments = postJSON[1]['data']['children']
+			loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
+			loadedAuthor = [0]['data']['children'][0]['data']['author']
+			commentQ = parsePost(loadedComments, loadedLinkID, loadedAuthor, initialDepth)
+			
+			#for each in commentQueue, load pages, parsePosts ...
+			while len(commentQ) > 0:
+				metaList = commentQ.pop()
+				clist = metaList['comments']
+				for link in cList:
+					postURL = "http://www.reddit.com/comments/" + link + ".json?sort=top&limit=500"
+					postJSON = fetchJSON(postURL)
+					loadedComments = postJSON[1]['data']['children']
+					loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
+					loadedAuthor = [0]['data']['children'][0]['data']['author']
+					initialDepth = metaList['depth']
+					commentQ.append(parsePost(loadedComments, loadedLinkID, loadedAuthor, initialDepth))
+				
+				print len(commentQ)
+				
+#parse comments, append 'more' sections to queue					
+def parsePost(postComments, parentID, OP, initialDepth=0):
+	toParse = []
+	commentQ = []
+	toParse.append({'pid':parentID, 'comments':postComments, 'depth':initialDepth})
+
+	while len(toParse) > 0:
+		metaChild = toParse.pop()
+		cList = metaChild['comments']
+		while len(cList) > 0:
+			child = cList.pop()
+			if child['kind'] == 't1':
+				addComment(child, metaChild['pid'], metaChild['depth'], OP)
+				if child['data']['replies'] != "":
+					if child['data']['parent_id'] == child['data']['link_id']:
+						toParse.append({'pid':child['data']['id'], 'comments':child['data']['replies']['data']['children'], 'depth':(metaChild['depth']+1)})
+					else:
+						toParse.append({'pid':metaChild['pid'], 'comments':child['data']['replies']['data']['children'], 'depth':(metaChild['depth']+1)})
+			elif child['kind'] == 'more':
+				commentQ.append({'pid':metaChild['pid'], 'comments':child['data']['children'], 'depth':metaChild['depth']})
+			else:
+				raise Exception('unknown type %s' % child['kind'])
+
+	return commentQ
+
+#add comments to comment list	
+def addComment(child, root, depth, oppa):
+	data = child['data']
+		if data['id'] not in comments:		
+			comments[data['id']] = {
+				'ID':data['id'], 
+				'User':data['author'], 
+				'Total':data['score'], 
+				'Ups':data['ups'], 
+				'Downs':data['downs'], 
+				'Link':False, 
+				'Parent':data['parent_id'][3:], 
+				'Highest':root, 
+				'Depth':depth,
+				'Timestamp':data['created_utc'],
+				'Celebrity':False,
+				'Title':None,
+				'Content':None}
+			if data['author'] == oppa:
+				comments[data['id']]['OP'] = True
+			
 #main
 def main():
-	#load file if exists
 	loadFile()
 	
-	while datetime.datetime.now().day == 21 and datetime.datetime.now().hour <= 10:
+	while datetime.datetime.now().day == 21 and datetime.datetime.now().hour <= 13:
 		page = fetchJSON(target)
 		
 		while page == -1:
 			page = fetchJSON(target)
 			
 		updatePosts(page)
-		if datetime.datetime.now().minute % 10 == 0:
+		if datetime.datetime.now().minute % 2 == 0:
 			writeFile()
+			
 		if verbose:
 			print len(posts)		
 			log.write("%d\n" % len(posts))
-			print 'Sleeping 35 at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
-			log.write('Sleeping 35 at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
+			print 'Sleeping 35s at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
+			log.write('Sleeping 35s at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
 
 		sleep(35)	
-	#output pages fetched to a file
+
 	writeFile()
 	log.close()
-	#nice columns of data
 	pageprint()
 	print len(posts)
 	
-main()
+#main()
