@@ -1,7 +1,7 @@
 #TODO
 #usernames -> number
 #scheduler / wrapper
-#fork
+#get all for celebs
 
 import json
 import urllib2
@@ -22,7 +22,6 @@ kindList = {'t1' : 'comment',
 			't5' : 'subreddit'}
 monthDays =  [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 labels = ["ID", "User", "Total", "Ups", "Downs", "Link", "OP", "Parent", "Highest", "Depth", "Timestamp", "Celebrity", "Title", "Content"]
-log = open('out.txt', 'a', 1)					
 
 #set User-Agent
 headers = {'User-Agent' : 'scrapin\' on my scraper bot\\Ubuntu 12.04 64\\Python\\user robot_one'}
@@ -113,6 +112,14 @@ def updatePosts(page):
 			posts[data['id']]['Total'] = data['score'] 
 			posts[data['id']]['Ups'] = data['ups']
 			posts[data['id']]['Downs'] = data['downs'] 
+			if data['ups'] > 49 or data['author'] in celebList:
+				posts[data['id']]['Celebrity'] = True
+				posts[data['id']]['Title'] = data['title']
+				posts[data['id']]['Content'] = data['selftext']
+				if data['author'] not in celebList:
+					celebList.append(data['author'])
+				
+				
 	
 #dump json	
 def writeFile():
@@ -159,6 +166,7 @@ def getComments():
 			postJSON = fetchJSON(postURL)
 			while postJSON == -1:
 				fetchJSON(postURL)
+			updatePosts(postJSON[0])
 			loadedComments = postJSON[1]['data']['children']
 			loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
 			loadedAuthor = postJSON[0]['data']['children'][0]['data']['author']
@@ -267,6 +275,8 @@ def main():
 	pid = os.fork()
 	
 	if pid != 0:
+		global log
+		log = open('log.txt', 'a', 1)
 		loadFile()
 	
 		while datetime.datetime.now().day == 21 and datetime.datetime.now().hour <= 13:
@@ -292,6 +302,8 @@ def main():
 		pageprint()
 		print len(posts)
 	elif pid == 0:
+		global log
+		log = open('childLog.txt', 'a', 1)
 		stime = timeUntil3()
 		sleep(stime)
 
@@ -323,12 +335,16 @@ def main():
 				targetDate = datetime.datetime(targetYear, targetMonth, targetDay)
 				loadFile(targetDate)
 				getComments()
-				#updating posts?
-				#write posts and comments to file
-				#clear comments?
-				#clear posts?
+				#TODO write posts and comments to file
+				global comments
+				global posts
+				comments = {}
+				posts = {}
 			
-			#sleep till 3 the next day
+			stime = timeUntil3()
+			sleep(stime)
+		#TODO get all celeb posts
+		
 def test():
 	posts['126b1l'] = {
 		'ID':'126b1l', 
