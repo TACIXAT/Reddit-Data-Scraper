@@ -23,6 +23,10 @@ kindList = {'t1' : 'comment',
 monthDays =  [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 labels = ["ID", "User", "Total", "Ups", "Downs", "Link", "OP", "Parent", "Highest", "Depth", "Timestamp", "Celebrity", "Title", "Content"]
 
+#TODO remove this place holder function
+def doSomething():
+	return 0
+
 #set User-Agent
 headers = {'User-Agent' : 'scrapin\' on my scraper bot\\Ubuntu 12.04 64\\Python\\user robot_one'}
 if(verbose):
@@ -260,7 +264,12 @@ def addComment(child, root, depth, oppa):
 			'Content':None}
 		if data['author'] == oppa:
 			comments[data['id']]['OP'] = True
-
+		if data['ups'] > 49 or data['author'] in celebList:
+			comments[data['id']]['Celebrity'] = True
+			comments[data['id']]['Content'] = data['body']
+			if data['author'] not in celebList:
+				celebList.append(data['author'])
+			
 #returns (roughly) the number of seconds until 3am
 def timeUntil3():
 	ctime = datetime.datetime.now()
@@ -344,6 +353,7 @@ def main():
 			stime = timeUntil3()
 			sleep(stime)
 		#TODO get all celeb posts
+		#TODO output all to .csv
 		
 def test():
 	posts['126b1l'] = {
