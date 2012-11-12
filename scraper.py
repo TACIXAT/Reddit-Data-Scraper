@@ -11,7 +11,6 @@ from time import sleep
 
 #global declares
 verbose = True
-targetPost = "http://www.reddit.com/r/AskReddit/top/.json"
 target = "http://www.reddit.com/r/AskReddit/new/.json?sort=new"
 posts = {}
 comments = {}
@@ -22,6 +21,7 @@ kindList = {'t1' : 'comment',
 			't5' : 'subreddit'}
 monthDays =  [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 labels = ["ID", "User", "Total", "Ups", "Downs", "Link", "OP", "Parent", "Highest", "Depth", "Timestamp", "Celebrity", "Title", "Content"]
+currentDay = datetime.datetime.now().day
 
 #TODO remove this place holder function
 def doSomething():
@@ -93,13 +93,16 @@ def updatePosts(page):
 	if verbose:
 		print 'Adding json page listings to posts object.'
 		log.write('Adding json page listings to posts object.\n')
-	print json.dumps(page, indent=4)
+	#print json.dumps(page, indent=4)
+	UTCFilter = datetime.datetime(currentYear, currentMonth, currentDay)
+	UTCFilter = utc.strftime('%s')
+
 	for child in page['data']['children']:
 		data = child['data']
-		if data['id'] not in posts:		
+		if data['id'] not in posts and data['created_utc'] >= UTCFilter:		
 			posts[data['id']] = {
 				'ID':data['id'], 
-				'User':data['author'], 
+				'User':hash(data['author']), 
 				'Total':data['score'], 
 				'Ups':data['ups'], 
 				'Downs':data['downs'], 
@@ -112,33 +115,28 @@ def updatePosts(page):
 				'Celebrity':False,
 				'Title':None,
 				'Content':None}
-		else:
+		elif data['id'] in posts:
 			posts[data['id']]['Total'] = data['score'] 
 			posts[data['id']]['Ups'] = data['ups']
 			posts[data['id']]['Downs'] = data['downs'] 
-			if data['ups'] > 49 or data['author'] in celebList:
+			if data['ups'] > 49 or hash(data['author']) in celebList:
 				posts[data['id']]['Celebrity'] = True
 				posts[data['id']]['Title'] = data['title']
 				posts[data['id']]['Content'] = data['selftext']
-				if data['author'] not in celebList:
-					celebList.append(data['author'])
-				
-				
+				if hash(data['author']) not in celebList:
+					celebList.append(hash(data['author']))
 	
 #dump json	
-def writeFile():
-	if verbose:
-		print 'Writing to file.'
-		log.write('Writing to file.\n')
-	today = datetime.datetime.now()
-	sfname = str(today.year) + '.' + str(today.month) + '.' + str(today.day) + '.json'
+def writeFile(date=datetime.datetime.now(), output=posts):
+	sfname = str(date.year) + '.' + str(date.month) + '.' + str(date.day) + '.json'
 	ffname = './data/' + sfname
+	if verbose:
+		print 'Writing to file ' + sfname 
+		log.write('Writing to file ' + sfname + '\n')
 	f = open(ffname, 'w')
-	
-	f.write(json.dumps(posts, indent=4))
-	
+	f.write(json.dumps(output, indent=4))
 	f.close()
-
+	
 #print format			
 def pageprint():
 	widths = [8, 20, 8, 8, 8, 8, 8, 8, 8, 8, 32, 8, 8, 8]
@@ -173,7 +171,7 @@ def getComments():
 			updatePosts(postJSON[0])
 			loadedComments = postJSON[1]['data']['children']
 			loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
-			loadedAuthor = postJSON[0]['data']['children'][0]['data']['author']
+			loadedAuthor = hash(postJSON[0]['data']['children'][0]['data']['author'])
 			commentQ = parsePost(loadedComments, loadedLinkID, loadedAuthor)
 			
 			if verbose:
@@ -185,7 +183,7 @@ def getComments():
 			#for each in commentQueue, load pages, parsePosts ...
 			while len(commentQ) > 0:
 				metaList = commentQ.pop()
-				print json.dumps(metaList, indent=4)
+				#print json.dumps(metaList, indent=4)
 				cList = metaList['comments']
 				if verbose:
 					print 'Starting load of %d pages.' % len(cList)
@@ -198,7 +196,7 @@ def getComments():
 						fetchJSON(postURL)
 					loadedComments = postJSON[1]['data']['children']
 					loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
-					loadedAuthor = postJSON[0]['data']['children'][0]['data']['author']
+					loadedAuthor = hash(postJSON[0]['data']['children'][0]['data']['author'])
 					initialDepth = metaList['depth']
 					commentQ += parsePost(loadedComments, loadedLinkID, loadedAuthor, initialDepth)
 					finish = datetime.datetime.now()
@@ -250,7 +248,7 @@ def addComment(child, root, depth, oppa):
 	if data['id'] not in comments:		
 		comments[data['id']] = {
 			'ID':data['id'], 
-			'User':data['author'], 
+			'User':hash(data['author']), 
 			'Total':(data['ups']-data['downs']), 
 			'Ups':data['ups'], 
 			'Downs':data['downs'], 
@@ -262,13 +260,13 @@ def addComment(child, root, depth, oppa):
 			'Celebrity':False,
 			'Title':None,
 			'Content':None}
-		if data['author'] == oppa:
+		if hash(data['author']) == oppa:
 			comments[data['id']]['OP'] = True
-		if data['ups'] > 49 or data['author'] in celebList:
+		if data['ups'] > 49 or hash(data['author']) in celebList:
 			comments[data['id']]['Celebrity'] = True
 			comments[data['id']]['Content'] = data['body']
-			if data['author'] not in celebList:
-				celebList.append(data['author'])
+			if hash(data['author']) not in celebList:
+				celebList.append(hash(data['author']))
 			
 #returns (roughly) the number of seconds until 3am
 def timeUntil3():
@@ -286,15 +284,41 @@ def main():
 	if pid != 0:
 		global log
 		log = open('log.txt', 'a', 1)
+		#TODO 
+		#fix to stop at midnight
+		#write out
+		#open new file
+		#check times when adding to 'new posts'
+		now = datetime.datetime.now()
+		end = now + datetime.timedelta(7, 30)
+		now = datetime.datetime.now()	#fresher
+
+		global currentDay
+		global currentMonth
+		global currentYear
+		currentDay = now.day
+		currentYear = now.year
+		currentMonth = now.month
+
 		loadFile()
-	
-		while datetime.datetime.now().day == 21 and datetime.datetime.now().hour <= 13:
+
+		while now < end:
+			if now.day != currentDay:
+				currentDay = now.day
+				currentYear = now.year
+				currentMonth = now.month
+				writeFile()
+				global posts
+				posts = {}
+				loadFile()
+
 			page = fetchJSON(target)
 		
 			while page == -1:
 				page = fetchJSON(target)
 			
 			updatePosts(page)
+
 			if datetime.datetime.now().minute % 2 == 0:
 				writeFile()
 			
@@ -305,10 +329,11 @@ def main():
 				log.write('Sleeping 35s at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
 
 			sleep(35)	
+			now = datetime.datetime.now()
 
 		writeFile()
 		log.close()
-		pageprint()
+		#pageprint()
 		print len(posts)
 	elif pid == 0:
 		global log
@@ -344,7 +369,8 @@ def main():
 				targetDate = datetime.datetime(targetYear, targetMonth, targetDay)
 				loadFile(targetDate)
 				getComments()
-				#TODO write posts and comments to file
+				writeFile(targetDate)
+				writeFile(targetDate, comments)
 				global comments
 				global posts
 				comments = {}
@@ -355,26 +381,4 @@ def main():
 		#TODO get all celeb posts
 		#TODO output all to .csv
 		
-def test():
-	posts['126b1l'] = {
-		'ID':'126b1l', 
-		'User':'fancytits', 
-		'Total':9001, 
-		'Ups':10002, 
-		'Downs':1001, 
-		'Link':True, 
-		'OP':True, 
-		'Parent':None, 
-		'Highest':None, 
-		'Depth':None,
-		'Timestamp':1234567890123,
-		'Celebrity':False,
-		'Title':None,
-		'Content':None}
-	getComments()
-	f = open('data/comments.json', 'w')
-	f.write(json.dumps(comments, indent=4))
-	f.close()
-	
-test()
-#main()
+main()
