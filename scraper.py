@@ -1,6 +1,4 @@
 #TODO
-#usernames -> number
-#scheduler / wrapper
 #get all for celebs
 
 import json
@@ -284,11 +282,6 @@ def main():
 	if pid != 0:
 		global log
 		log = open('log.txt', 'a', 1)
-		#TODO 
-		#fix to stop at midnight
-		#write out
-		#open new file
-		#check times when adding to 'new posts'
 		now = datetime.datetime.now()
 		end = now + datetime.timedelta(7, 30)
 		now = datetime.datetime.now()	#fresher
@@ -335,6 +328,7 @@ def main():
 		log.close()
 		#pageprint()
 		print len(posts)
+		os.wait()
 	elif pid == 0:
 		global log
 		log = open('childLog.txt', 'a', 1)
