@@ -1,16 +1,18 @@
 #TODO
-#get all for celebs
+#CSV!CSV!
 
-import json
-import urllib2
 import os
 import re
-import datetime
 from time import sleep
+import datetime
+import urllib2
+import json
+import csv
 
 #global declares
 verbose = True
-target = "http://www.reddit.com/r/AskReddit/new/.json?sort=new"
+targetSubreddit = 'AskReddit'
+target = "http://www.reddit.com/r/" + targetSubreddit + "/new/.json?sort=new"
 posts = {}
 comments = {}
 kindList = {'t1' : 'comment',
@@ -257,8 +259,7 @@ def parsePost(postComments, parentID, OP, initialDepth=0):
 #add comments to comment list	
 def addComment(child, root, depth, oppa):
 	data = child['data']
-	global celebList
-	global comments
+	global celebList, comments
 	if data['id'] not in comments:		
 		comments[data['id']] = {
 			'ID':data['id'], 
@@ -291,9 +292,11 @@ def timeUntil3():
 	sleepyTime += m * 60
 	return sleepyTime
 
+#get celeb posts before they were cool
 def getCelebs():
+	global posts, comments, celebList
 	flist = os.listdir('./data')
-	pattern = re.compile(r'\d{4}\.(\d\d.){2}(c\.)?json')
+	pattern = re.compile(r'\d{4}\.(\d?\d.){2}(c\.)?json')
 		for f in flist:
 			if reg.match(f) != None:
 				fsplit = f.split('.')
@@ -301,41 +304,40 @@ def getCelebs():
 					loadFile(datetime.datetime(int(fsplit[0]), fsplit(fill[1]), fsplit(fill[2])))
 					for entry in posts:
 						if !posts[entry]['Celebrity'] and posts[entry]['User'] in celebList:
-							doSomething()
-							#load post 
-							#update content
+							url = 'http://www.reddit.com/by_id/t3_' + posts[entry]['ID'] + '/.json'
+							celebPost = fetchJSON()
+							celebPost = celebPost['data']['children'][0]['data']
+							posts[entry]['Celebrity'] = True
+							posts[entry]['Title'] = celebPost['title']
+							posts[entry]['Content'] = celebPost['selftext']
+							sleep(2)
+					writeFile(datetime.datetime(int(fsplit[0]), fsplit(fill[1]), fsplit(fill[2])))
 				elif len(fsplit) == 5:
 					loadFile(datetime.datetime(int(fsplit[0]), int(fsplit[1]), int(fsplit[2])), fsplit[3])
 					for entry in comments:
 						if !comments[entry]['Celebrity'] and comments[entry]['User'] in celebList:
-							doSomething()
-							#load comment 
-							#update content
+							url = 'http://www.reddit.com/comments/' + comments[entry]['Parent'] + '/robot/' + comments[entry]['ID'] + '/.json'
+							celebPost = fetchJSON()
+							celebPost = celebPost[1]['data']['children'][0]['data']
+							comments[entry]['Celebrity'] = True
+							comments[entry]['Content'] = celebPost['selftext']
+							sleep(2)
+					writeFile(datetime.datetime(int(fsplit[0]), fsplit(fill[1]), fsplit(fill[2])), comments)
 				else:
 					print "Something awful happened."
 					print "The regex matched an unsupported file."
-
-				#for ea in file
-					#if data['user'] in celebList and !data['celebrity']:
-						#getContent
-
-
-
 
 #main
 def main():
 	pid = os.fork()
 	
 	if pid != 0:
-		global log
+		global log, currentDay, currentMonth, currentYear, posts
 		log = open('log.txt', 'a', 1)
 		now = datetime.datetime.now()
 		end = now + datetime.timedelta(7, 30)
 		now = datetime.datetime.now()	#fresher
 
-		global currentDay
-		global currentMonth
-		global currentYear
 		currentDay = now.day
 		currentYear = now.year
 		currentMonth = now.month
@@ -348,7 +350,6 @@ def main():
 				currentYear = now.year
 				currentMonth = now.month
 				writeFile()
-				global posts
 				posts = {}
 				loadFile()
 
@@ -379,7 +380,7 @@ def main():
 	elif pid == 0:
 		dayThresh = datetime.datetime.now()
 		dayThresh += datetime.timedelta(7)
-		global log
+		global log, comments, posts
 		log = open('childLog.txt', 'a', 1)
 		stime = timeUntil3()
 		sleep(stime)
@@ -414,8 +415,6 @@ def main():
 				getComments()
 				writeFile(targetDate)
 				writeFile(targetDate, comments)
-				global comments
-				global posts
 				comments = {}
 				posts = {}
 			elif datetime.datetime.now() > dayThresh:
