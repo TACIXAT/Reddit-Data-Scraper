@@ -1,6 +1,4 @@
 #TODO
-#CSV!CSV!
-#look over date/file changes, post discrimination
 #celeb csv
 #write test
 
@@ -238,6 +236,9 @@ def parsePost(postComments, parentID, OP, initialDepth=0):
 	toParse = []
 	commentQ = []
 	toParse.append({'pid':parentID, 'comments':postComments, 'depth':initialDepth})
+	if verbose:
+		print "Parsing post."		
+		log.write("Parsing post.\n")
 
 	while len(toParse) > 0:
 		metaChild = toParse.pop()
@@ -261,6 +262,9 @@ def parsePost(postComments, parentID, OP, initialDepth=0):
 
 #add comments to comment list	
 def addComment(child, root, depth, oppa):
+	if verbose:
+		print "Adding comment."		
+		log.write("Adding comment.\n")
 	data = child['data']
 	global celebList, comments
 	if data['id'] not in comments:		
@@ -293,6 +297,9 @@ def timeUntil3():
 	m = (60-ctime.minute)
 	sleepyTime = h * 60 * 60
 	sleepyTime += m * 60
+	if verbose:
+		print "Time until 3 - %d." % sleepyTime		
+		log.write("Time until 3 - %d.\n" % sleepyTime)
 	return sleepyTime
 
 #get celeb posts before they were cool
@@ -300,34 +307,44 @@ def getCelebs():
 	global posts, comments, celebList
 	flist = os.listdir('./data')
 	pattern = re.compile(r'\d{4}(-\d\d){2}(\.c)?\.json')
-		for f in flist:
-			if pattern.match(f) != None:
-				if len(f) == 15:
-					loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])))
-					for entry in posts:
-						if !posts[entry]['Celebrity'] and posts[entry]['User'] in celebList:
-							url = 'http://www.reddit.com/by_id/t3_' + posts[entry]['ID'] + '/.json'
-							celebPost = fetchJSON()
-							celebPost = celebPost['data']['children'][0]['data']
-							posts[entry]['Celebrity'] = True
-							posts[entry]['Title'] = celebPost['title']
-							posts[entry]['Content'] = celebPost['selftext']
-							sleep(2)
-					writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10]))
-				elif len(f) == 17:
-					loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), 'c')
-					for entry in comments:
-						if !comments[entry]['Celebrity'] and comments[entry]['User'] in celebList:
-							url = 'http://www.reddit.com/comments/' + comments[entry]['Parent'] + '/robot/' + comments[entry]['ID'] + '/.json'
-							celebPost = fetchJSON()
-							celebPost = celebPost[1]['data']['children'][0]['data']
-							comments[entry]['Celebrity'] = True
-							comments[entry]['Content'] = celebPost['selftext']
-							sleep(2)
-					writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), comments)
-				else:
-					print "Something awful happened."
-					print "The regex matched an unsupported file."
+	if verbose:
+		print "Getting celebs."		
+		log.write("Getting celebs.\n")
+	for f in flist:
+		if pattern.match(f) != None:
+			if len(f) == 15:
+				loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])))
+				if verbose:
+					print "Getting celebs from posts."		
+					log.write("Getting celebs from posts.\n")
+				for entry in posts:
+					if !posts[entry]['Celebrity'] and posts[entry]['User'] in celebList:
+						url = 'http://www.reddit.com/by_id/t3_' + posts[entry]['ID'] + '/.json'
+						celebPost = fetchJSON()
+						celebPost = celebPost['data']['children'][0]['data']
+						posts[entry]['Celebrity'] = True
+						posts[entry]['Title'] = celebPost['title']
+						posts[entry]['Content'] = celebPost['selftext']
+						sleep(2)
+				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10]))
+			elif len(f) == 17:
+				loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), 'c')
+				if verbose:
+					print "Getting celebs from comments."		
+					log.write("Getting celebs from comments.\n")
+				for entry in comments:
+					if !comments[entry]['Celebrity'] and comments[entry]['User'] in celebList:
+						url = 'http://www.reddit.com/comments/' + comments[entry]['Parent'] + '/robot/' + comments[entry]['ID'] + '/.json'
+						celebPost = fetchJSON()
+						celebPost = celebPost[1]['data']['children'][0]['data']
+						comments[entry]['Celebrity'] = True
+						comments[entry]['Content'] = celebPost['selftext']
+						sleep(2)
+				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), comments)
+			else:
+				if verbose:
+					print "ERROR: The regex matched an unsupported file."		
+					log.write("ERROR: The regex matched an unsupported file.\n")
 
 #output all to csv
 def toCSV():
@@ -336,12 +353,15 @@ def toCSV():
 	pattern = re.compile(r'\d{4}(-\d\d){2}(\.c)?\.json')
 	bigList = {}
 
+	if verbose:
+		print "Generating CSV file list."		
+		log.write("Generating CSV file list.\n")
 	for f in flist:
 		if pattern.match(f) != None:
 			jfile = open(f, 'r')
 			bigList.update(json.load(jfile))
 			jfile.close()
-			bfname = f[:10]
+			bfname = str(f)[:10]
 			if bfname not in lookup:
 				cfile = csv.writer(open('./data/' + bfname + '.csv', 'w'))
 				cfile.writerow(['Number', 
@@ -359,8 +379,11 @@ def toCSV():
 								'Content'])
 				lookup[bfname] = cfile
 
+	if verbose:
+		print "Adding to CSV files."		
+		log.write("Adding to CSV files.\n")
+
 	for key in bigList:
-		doSomething()
 		onDay = str(datetime.datetime.fromtimestamp(bigList[key]['Timestamp']))[:10]
 		if onDay in lookup:
 			lookup[onDay].writerow(bigList[key]['ID'], 
@@ -388,7 +411,7 @@ def parent():
 	log = open('log.txt', 'a', 1)
 	now = datetime.datetime.now()
 	end = now + datetime.timedelta(7, 30)
-	datetime.datetime.now()	#fresher
+	now = datetime.datetime.now()	#fresher
 
 	currentDate = now
 	loadFile()
@@ -437,7 +460,7 @@ def child():
 		ctime = datetime.datetime.now()
 		targetDate = ctime - datetime.timedelta(3)
 		
-		ftarget = targetDate[:10] + ".json"
+		ftarget = str(targetDate)[:10] + ".json"
 		flist = os.listdir('./data')
 		hasFile = False
 		
@@ -464,10 +487,113 @@ def child():
 #main
 def main():
 	pid = os.fork()
-	
 	if pid != 0:
 		parent()
 	elif pid == 0:
 		child()
+
+#main()
+
+################################
+################################
+################################
+################################
+################################
+################################
+################################
+################################
+################################
+
+target = "http://www.reddit.com/r/AskReddit/.json"
+
+def parentTest():
+	global log, currentDate, posts
+	log = open('log.txt', 'a', 1)
+	now = datetime.datetime.now()
+	end = now + datetime.timedelta(0, 3600)
+	now = datetime.datetime.now()	#fresher
+
+	currentDate = now
+	loadFile()
+	i = 0
+	while now < end:
+		if now.day != currentDate.day:
+			writeFile(currentDate)
+			currentDate = now
+			posts = {}
+			loadFile()
+
+		page = fetchJSON(target)
+	
+		while page == -1:
+			page = fetchJSON(target)
 		
-main()
+		updatePosts(page)
+
+		if datetime.datetime.now().minute % 2 == 0:
+			writeFile(currentDate)
+		
+		if verbose:
+			print len(posts)		
+			log.write("%d\n" % len(posts))
+			print 'Sleeping 35s at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
+			log.write('Sleeping 35s at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
+
+		sleep(35)
+		if i < 50:
+			target = "http://www.reddit.com/r/AskReddit/new/.json?sort=new"
+		else:	
+			target = "http://www.reddit.com/r/AskReddit/controversial/.json"
+		now = datetime.datetime.now()
+
+	writeFile(currentDate)
+	log.close()
+	#pageprint()
+	print len(posts)
+	os.wait()
+
+def childTest():
+	dayThresh = datetime.datetime.now()
+	dayThresh += datetime.timedelta(1)
+	global log, comments, posts
+	log = open('childLog.txt', 'a', 1)
+	stime = timeUntil3()
+	print stime
+	sleep(3700)
+
+	while True:
+		ctime = datetime.datetime.now()
+		targetDate = ctime - datetime.timedelta(0)
+		
+		ftarget = str(targetDate)[:10] + ".json"
+		flist = os.listdir('./data')
+		hasFile = False
+		
+		for f in flist:
+			if f == ftarget:
+				hasFile = True
+				
+		if hasFile:
+			loadFile(targetDate)
+			getComments()
+			writeFile(targetDate)
+			writeFile(targetDate, comments)
+			comments = {}
+			posts = {}
+		elif datetime.datetime.now() > dayThresh:
+			break
+
+		break
+		stime = timeUntil3()
+		sleep(stime)
+	getCelebs()
+	toCSV()
+	#TODO CELEBRITY CSV
+		
+def test():
+	pid = os.fork()
+	if pid != 0:
+		parentTest()
+	elif pid == 0:
+		childTest()
+test()
