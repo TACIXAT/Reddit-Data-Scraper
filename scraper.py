@@ -4,6 +4,7 @@
 import json
 import urllib2
 import os
+import re
 import datetime
 from time import sleep
 
@@ -20,6 +21,7 @@ kindList = {'t1' : 'comment',
 monthDays =  [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 labels = ["ID", "User", "Total", "Ups", "Downs", "Link", "OP", "Parent", "Highest", "Depth", "Timestamp", "Celebrity", "Title", "Content"]
 currentDay = datetime.datetime.now().day
+celebList = []
 
 #TODO remove this place holder function
 def doSomething():
@@ -32,8 +34,11 @@ if(verbose):
 	log.write("User-Agent: %s\n" % headers['User-Agent'])
 	
 #load or create file
-def loadFile(targetDate=datetime.datetime.now()):
-	sfname = str(targetDate.year) + '.' + str(targetDate.month) + '.' + str(targetDate.day) + '.json'
+def loadFile(targetDate=datetime.datetime.now(), preExt=""):
+	if preExt != "" and preExt[0] != '.':
+		preExt = '.' + preExt
+	
+	sfname = str(targetDate.year) + '.' + str(targetDate.month) + '.' + str(targetDate.day) + preExt + '.json'
 	ffname = './data/' + sfname
 	hasMatch = False
 	flist = os.listdir('./data')
@@ -49,9 +54,14 @@ def loadFile(targetDate=datetime.datetime.now()):
 			log.write('File match found.\nLoading json.\n')
 		f = open(ffname)
 		loaded = json.load(f)
+		
+		if preExt == "":
+			global posts 
+			posts = loaded
+		elif preExt == ".c":
+			global comments
+			comments = loaded
 
-		global posts 
-		posts = loaded
 	else:
 		if verbose:
 			print 'No match found.\nCreating file.'
@@ -94,7 +104,7 @@ def updatePosts(page):
 	#print json.dumps(page, indent=4)
 	UTCFilter = datetime.datetime(currentYear, currentMonth, currentDay)
 	UTCFilter = utc.strftime('%s')
-
+	global celebList
 	for child in page['data']['children']:
 		data = child['data']
 		if data['id'] not in posts and data['created_utc'] >= UTCFilter:		
@@ -126,7 +136,11 @@ def updatePosts(page):
 	
 #dump json	
 def writeFile(date=datetime.datetime.now(), output=posts):
-	sfname = str(date.year) + '.' + str(date.month) + '.' + str(date.day) + '.json'
+	if output == posts:
+		sfname = str(date.year) + '.' + str(date.month) + '.' + str(date.day) + '.json'
+	elif ouput == comments:
+		sfname = str(date.year) + '.' + str(date.month) + '.' + str(date.day) + '.c.json'
+
 	ffname = './data/' + sfname
 	if verbose:
 		print 'Writing to file ' + sfname 
@@ -243,6 +257,8 @@ def parsePost(postComments, parentID, OP, initialDepth=0):
 #add comments to comment list	
 def addComment(child, root, depth, oppa):
 	data = child['data']
+	global celebList
+	global comments
 	if data['id'] not in comments:		
 		comments[data['id']] = {
 			'ID':data['id'], 
@@ -260,7 +276,7 @@ def addComment(child, root, depth, oppa):
 			'Content':None}
 		if hash(data['author']) == oppa:
 			comments[data['id']]['OP'] = True
-		if data['ups'] > 49 or hash(data['author']) in celebList:
+		if data['ups'] > 49 or data['downs'] > 49 or hash(data['author']) in celebList:
 			comments[data['id']]['Celebrity'] = True
 			comments[data['id']]['Content'] = data['body']
 			if hash(data['author']) not in celebList:
@@ -274,7 +290,38 @@ def timeUntil3():
 	sleepyTime = h * 60 * 60
 	sleepyTime += m * 60
 	return sleepyTime
-		
+
+def getCelebs():
+	flist = os.listdir('./data')
+	pattern = re.compile(r'\d{4}\.(\d\d.){2}(c\.)?json')
+		for f in flist:
+			if reg.match(f) != None:
+				fsplit = f.split('.')
+				if len(fsplit) == 4:
+					loadFile(datetime.datetime(int(fsplit[0]), fsplit(fill[1]), fsplit(fill[2])))
+					for entry in posts:
+						if !posts[entry]['Celebrity'] and posts[entry]['User'] in celebList:
+							doSomething()
+							#load post 
+							#update content
+				elif len(fsplit) == 5:
+					loadFile(datetime.datetime(int(fsplit[0]), int(fsplit[1]), int(fsplit[2])), fsplit[3])
+					for entry in comments:
+						if !comments[entry]['Celebrity'] and comments[entry]['User'] in celebList:
+							doSomething()
+							#load comment 
+							#update content
+				else:
+					print "Something awful happened."
+					print "The regex matched an unsupported file."
+
+				#for ea in file
+					#if data['user'] in celebList and !data['celebrity']:
+						#getContent
+
+
+
+
 #main
 def main():
 	pid = os.fork()
@@ -330,6 +377,8 @@ def main():
 		print len(posts)
 		os.wait()
 	elif pid == 0:
+		dayThresh = datetime.datetime.now()
+		dayThresh += datetime.timedelta(7)
 		global log
 		log = open('childLog.txt', 'a', 1)
 		stime = timeUntil3()
@@ -369,10 +418,13 @@ def main():
 				global posts
 				comments = {}
 				posts = {}
-			
+			elif datetime.datetime.now() > dayThresh:
+				break
+
+
 			stime = timeUntil3()
 			sleep(stime)
-		#TODO get all celeb posts
+		getCelebs()
 		#TODO output all to .csv
 		
 main()
