@@ -25,7 +25,7 @@ kindList = {'t1' : 'comment',
 			't5' : 'subreddit'}
 monthDays =  [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 labels = ["ID", "User", "Total", "Ups", "Downs", "Link", "OP", "Parent", "Highest", "Depth", "Timestamp", "Celebrity", "Title", "Content"]
-currentDay = datetime.datetime.now().day
+currentDate = datetime.datetime.now()
 celebList = []
 
 #TODO remove this place holder function
@@ -43,7 +43,7 @@ def loadFile(targetDate=datetime.datetime.now(), preExt=""):
 	if preExt != "" and preExt[0] != '.':
 		preExt = '.' + preExt
 	
-	sfname = str(targetDate.year) + '.' + str(targetDate.month) + '.' + str(targetDate.day) + preExt + '.json'
+	sfname = str(targetDate)[:10] + preExt + '.json'
 	ffname = './data/' + sfname
 	hasMatch = False
 	flist = os.listdir('./data')
@@ -107,7 +107,7 @@ def updatePosts(page):
 		print 'Adding json page listings to posts object.'
 		log.write('Adding json page listings to posts object.\n')
 	#print json.dumps(page, indent=4)
-	UTCFilter = datetime.datetime(currentYear, currentMonth, currentDay)
+	UTCFilter = datetime.datetime(currentDate.year, currentDate.month, currentDate.day)
 	UTCFilter = utc.strftime('%s')
 	global celebList
 	for child in page['data']['children']:
@@ -142,9 +142,9 @@ def updatePosts(page):
 #dump json	
 def writeFile(date=datetime.datetime.now(), output=posts):
 	if output == posts:
-		sfname = str(date.year) + '.' + str(date.month) + '.' + str(date.day) + '.json'
+		sfname = str(date)[:10] + '.json'
 	elif ouput == comments:
-		sfname = str(date.year) + '.' + str(date.month) + '.' + str(date.day) + '.c.json'
+		sfname = str(date)[:10] + '.c.json'
 
 	ffname = './data/' + sfname
 	if verbose:
@@ -299,12 +299,11 @@ def timeUntil3():
 def getCelebs():
 	global posts, comments, celebList
 	flist = os.listdir('./data')
-	pattern = re.compile(r'\d{4}\.(\d?\d.){2}(c\.)?json')
+	pattern = re.compile(r'\d{4}(-\d\d){2}(\.c)?\.json')
 		for f in flist:
 			if pattern.match(f) != None:
-				fsplit = f.split('.')
-				if len(fsplit) == 4:
-					loadFile(datetime.datetime(int(fsplit[0]), fsplit(fill[1]), fsplit(fill[2])))
+				if len(f) == 15:
+					loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])))
 					for entry in posts:
 						if !posts[entry]['Celebrity'] and posts[entry]['User'] in celebList:
 							url = 'http://www.reddit.com/by_id/t3_' + posts[entry]['ID'] + '/.json'
@@ -314,9 +313,9 @@ def getCelebs():
 							posts[entry]['Title'] = celebPost['title']
 							posts[entry]['Content'] = celebPost['selftext']
 							sleep(2)
-					writeFile(datetime.datetime(int(fsplit[0]), fsplit(fill[1]), fsplit(fill[2])))
-				elif len(fsplit) == 5:
-					loadFile(datetime.datetime(int(fsplit[0]), int(fsplit[1]), int(fsplit[2])), fsplit[3])
+					writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10]))
+				elif len(f) == 17:
+					loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), 'c')
 					for entry in comments:
 						if !comments[entry]['Celebrity'] and comments[entry]['User'] in celebList:
 							url = 'http://www.reddit.com/comments/' + comments[entry]['Parent'] + '/robot/' + comments[entry]['ID'] + '/.json'
@@ -325,7 +324,7 @@ def getCelebs():
 							comments[entry]['Celebrity'] = True
 							comments[entry]['Content'] = celebPost['selftext']
 							sleep(2)
-					writeFile(datetime.datetime(int(fsplit[0]), fsplit(fill[1]), fsplit(fill[2])), comments)
+					writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), comments)
 				else:
 					print "Something awful happened."
 					print "The regex matched an unsupported file."
@@ -334,127 +333,141 @@ def getCelebs():
 def toCSV():
 	lookup = {}
 	flist = os.listdir('./data')
-	pattern = re.compile(r'\d{4}\.(\d?\d.){2}(c\.)?json')
+	pattern = re.compile(r'\d{4}(-\d\d){2}(\.c)?\.json')
 	bigList = {}
 
 	for f in flist:
-		if pattern.match != None:
+		if pattern.match(f) != None:
 			jfile = open(f, 'r')
 			bigList.update(json.load(jfile))
 			jfile.close()
-			fsplit = f.split('.')
-			bfname = fsplit[0] + '.' + fsplit[1] + '.' + fsplit[2]
+			bfname = f[:10]
 			if bfname not in lookup:
 				cfile = csv.writer(open('./data/' + bfname + '.csv', 'w'))
-				cfile.writerow(['header', 'list']) #needs actual values
+				cfile.writerow(['Number', 
+								'Username', 
+								'Karma', 
+								'Upvotes', 
+								'Downvotes', 
+								'Post', 
+								'OP', 
+								'Parent', 
+								'Root', 
+								'Depth', 
+								'Celebrity', 
+								'Title', 
+								'Content'])
 				lookup[bfname] = cfile
 
 	for key in bigList:
 		doSomething()
-		#utc -> datetime
-		#lookup datetime
-		#append line to appropriate file
+		onDay = str(datetime.datetime.fromtimestamp(bigList[key]['Timestamp']))[:10]
+		if onDay in lookup:
+			lookup[onDay].writerow(bigList[key]['ID'], 
+			                       bigList[key]['User'], 
+			                       bigList[key]['Total'], 
+			                       bigList[key]['Ups'], 
+			                       bigList[key]['Downs'], 
+			                       bigList[key]['Link'], 
+			                       bigList[key]['OP']
+			                       bigList[key]['Parent'], 
+			                       bigList[key]['Highest'], 
+			                       bigList[key]['Depth'], 
+			                       bigList[key]['Celebrity'], 
+			                       bigList[key]['Title'], 
+			                       bigList[key]['Content'])
+		else:
+			print 'OMG WE GOT A POST FROM A DAY THAT DOESN\'T EXIST. PANIC PANIC PANIC.'
+		
 
-	#for key in lookup
-		#close files
+	for key in lookup
+		lookup[key].close()
+
+def parent():
+	global log, currentDate, posts
+	log = open('log.txt', 'a', 1)
+	now = datetime.datetime.now()
+	end = now + datetime.timedelta(7, 30)
+	datetime.datetime.now()	#fresher
+
+	currentDate = now
+	loadFile()
+
+	while now < end:
+		if now.day != currentDate.day:
+			writeFile(currentDate)
+			currentDate = now
+			posts = {}
+			loadFile()
+
+		page = fetchJSON(target)
+	
+		while page == -1:
+			page = fetchJSON(target)
+		
+		updatePosts(page)
+
+		if datetime.datetime.now().minute % 2 == 0:
+			writeFile(currentDate)
+		
+		if verbose:
+			print len(posts)		
+			log.write("%d\n" % len(posts))
+			print 'Sleeping 35s at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
+			log.write('Sleeping 35s at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
+
+		sleep(35)	
+		now = datetime.datetime.now()
+
+	writeFile(currentDate)
+	log.close()
+	#pageprint()
+	print len(posts)
+	os.wait()
+
+def child():
+	dayThresh = datetime.datetime.now()
+	dayThresh += datetime.timedelta(7)
+	global log, comments, posts
+	log = open('childLog.txt', 'a', 1)
+	stime = timeUntil3()
+	sleep(stime)
+
+	while True:
+		ctime = datetime.datetime.now()
+		targetDate = ctime - datetime.timedelta(3)
+		
+		ftarget = targetDate[:10] + ".json"
+		flist = os.listdir('./data')
+		hasFile = False
+		
+		for f in flist:
+			if f == ftarget:
+				hasFile = True
+				
+		if hasFile:
+			loadFile(targetDate)
+			getComments()
+			writeFile(targetDate)
+			writeFile(targetDate, comments)
+			comments = {}
+			posts = {}
+		elif datetime.datetime.now() > dayThresh:
+			break
+
+		stime = timeUntil3()
+		sleep(stime)
+	getCelebs()
+	toCSV()
+	#TODO CELEBRITY CSV
 
 #main
 def main():
 	pid = os.fork()
 	
 	if pid != 0:
-		global log, currentDay, currentMonth, currentYear, posts
-		log = open('log.txt', 'a', 1)
-		now = datetime.datetime.now()
-		end = now + datetime.timedelta(7, 30)
-		now = datetime.datetime.now()	#fresher
-
-		currentDay = now.day
-		currentYear = now.year
-		currentMonth = now.month
-
-		loadFile()
-
-		while now < end:
-			if now.day != currentDay:
-				currentDay = now.day
-				currentYear = now.year
-				currentMonth = now.month
-				writeFile()
-				posts = {}
-				loadFile()
-
-			page = fetchJSON(target)
-		
-			while page == -1:
-				page = fetchJSON(target)
-			
-			updatePosts(page)
-
-			if datetime.datetime.now().minute % 2 == 0:
-				writeFile()
-			
-			if verbose:
-				print len(posts)		
-				log.write("%d\n" % len(posts))
-				print 'Sleeping 35s at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
-				log.write('Sleeping 35s at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
-
-			sleep(35)	
-			now = datetime.datetime.now()
-
-		writeFile()
-		log.close()
-		#pageprint()
-		print len(posts)
-		os.wait()
+		parent()
 	elif pid == 0:
-		dayThresh = datetime.datetime.now()
-		dayThresh += datetime.timedelta(7)
-		global log, comments, posts
-		log = open('childLog.txt', 'a', 1)
-		stime = timeUntil3()
-		sleep(stime)
-
-		while True:
-			ctime = datetime.datetime.now()
-			
-			targetDay = ctime.day - 3
-			targetMonth = ctime.month
-			targetYear = ctime.year
-			
-			if targetDay < 1:
-				if targetMonth == 1:
-					targetYear -= 1
-					targetMonth = 12
-					targetDay += monthDays[targetMonth]
-				else:
-					targetMonth -= 1
-					targetDay += monthDays[targetMonth]
-				
-			ftarget = str(targetYear) + "." + str(targetMonth) + "." + str(targetDay) + ".json"
-			flist = os.listdir('./data')
-			hasFile = False
-			
-			for f in flist:
-				if f == ftarget:
-					hasFile = True
-					
-			if hasFile:
-				targetDate = datetime.datetime(targetYear, targetMonth, targetDay)
-				loadFile(targetDate)
-				getComments()
-				writeFile(targetDate)
-				writeFile(targetDate, comments)
-				comments = {}
-				posts = {}
-			elif datetime.datetime.now() > dayThresh:
-				break
-
-			stime = timeUntil3()
-			sleep(stime)
-		getCelebs()
-		toCSV()
-		#TODO CELEBRITY CSV
+		child()
 		
 main()
