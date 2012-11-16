@@ -1,5 +1,8 @@
 #TODO
 #CSV!CSV!
+#look over date/file changes, post discrimination
+#celeb csv
+#write test
 
 import os
 import re
@@ -298,7 +301,7 @@ def getCelebs():
 	flist = os.listdir('./data')
 	pattern = re.compile(r'\d{4}\.(\d?\d.){2}(c\.)?json')
 		for f in flist:
-			if reg.match(f) != None:
+			if pattern.match(f) != None:
 				fsplit = f.split('.')
 				if len(fsplit) == 4:
 					loadFile(datetime.datetime(int(fsplit[0]), fsplit(fill[1]), fsplit(fill[2])))
@@ -326,6 +329,34 @@ def getCelebs():
 				else:
 					print "Something awful happened."
 					print "The regex matched an unsupported file."
+
+#output all to csv
+def toCSV():
+	lookup = {}
+	flist = os.listdir('./data')
+	pattern = re.compile(r'\d{4}\.(\d?\d.){2}(c\.)?json')
+	bigList = {}
+
+	for f in flist:
+		if pattern.match != None:
+			jfile = open(f, 'r')
+			bigList.update(json.load(jfile))
+			jfile.close()
+			fsplit = f.split('.')
+			bfname = fsplit[0] + '.' + fsplit[1] + '.' + fsplit[2]
+			if bfname not in lookup:
+				cfile = csv.writer(open('./data/' + bfname + '.csv', 'w'))
+				cfile.writerow(['header', 'list']) #needs actual values
+				lookup[bfname] = cfile
+
+	for key in bigList:
+		doSomething()
+		#utc -> datetime
+		#lookup datetime
+		#append line to appropriate file
+
+	#for key in lookup
+		#close files
 
 #main
 def main():
@@ -420,10 +451,10 @@ def main():
 			elif datetime.datetime.now() > dayThresh:
 				break
 
-
 			stime = timeUntil3()
 			sleep(stime)
 		getCelebs()
-		#TODO output all to .csv
+		toCSV()
+		#TODO CELEBRITY CSV
 		
 main()
