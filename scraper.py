@@ -50,7 +50,7 @@ def loadFile(targetDate=datetime.datetime.now(), preExt=""):
 	
 	if hasMatch:
 		if verbose:
-			print 'File match found.\nLoading json.'
+			#print 'File match found.\nLoading json.'
 			log.write('File match found.\nLoading json.\n')
 		f = open(ffname)
 		loaded = json.load(f)
@@ -64,7 +64,7 @@ def loadFile(targetDate=datetime.datetime.now(), preExt=""):
 
 	else:
 		if verbose:
-			print 'No match found.\nCreating file.'
+			#print 'No match found.\nCreating file.'
 			log.write('No match found.\nCreating file.\n')
 		f = open(ffname, 'w')
 	
@@ -77,20 +77,20 @@ def fetchJSON(URL):
 	try:
 		response = urllib2.urlopen(req)
 	except urllib2.HTTPError, e:
-		print e.code
+		#print e.code
 		log.write(str(e.code))
 		log.write('\n')
 		sleep(10)
 		return -1
 	except urllib2.URLError, e:
-		print e.args
+		#print e.args
 		log.write(str(e.args))
 		log.write('\n')
 		sleep(10)
 		return -1
 	
 	if verbose:
-		print 'Response received.'
+		#print 'Response received.'
 		log.write('Response received.\n')
 	
 	jsonpage = json.load(response)
@@ -100,7 +100,7 @@ def fetchJSON(URL):
 def updatePosts(page):
 	global celebList
 	if verbose:
-		print 'Adding json page listings to posts object.'
+		#print 'Adding json page listings to posts object.'
 		log.write('Adding json page listings to posts object.\n')
 	#print json.dumps(page, indent=4)
 	UTCFilter = datetime.datetime(currentDate.year, currentDate.month, currentDate.day).strftime('%s')
@@ -145,7 +145,7 @@ def writeFile(date=datetime.datetime.now(), usePosts=True):
 
 	ffname = './data/' + sfname
 	if verbose:
-		print 'Writing to file ' + sfname 
+		#print 'Writing to file ' + sfname 
 		log.write('Writing to file ' + sfname + '\n')
 	f = open(ffname, 'w')
 	f.write(json.dumps(output, indent=4))
@@ -157,14 +157,14 @@ def pageprint():
 	skipList = [10, 11, 12, 13]
 	for i in range(0,len(labels)):
 		if i not in skipList:
-			print labels[i].rjust(widths[i]),
-	print
+			#print labels[i].rjust(widths[i]),
+	#print
 	
 	for key in sorted(posts.keys()):
 		for i in range(0,len(posts[key])):
 			if i not in skipList:
-				print str(posts[key][labels[i]]).rjust(widths[i]),
-		print
+				#print str(posts[key][labels[i]]).rjust(widths[i]),
+		#print
 
 total = 0
 
@@ -177,7 +177,7 @@ def getComments():
 		if posts[entry]['Link'] == True:
 			postURL = "http://www.reddit.com/comments/" + posts[entry]['ID'] + ".json?sort=top&limit=500"
 			if verbose:
-				print 'Loading comments for %s.' % posts[entry]['ID']
+				#print 'Loading comments for %s.' % posts[entry]['ID']
 				log.write('Loading comments for %s.\n' % posts[entry]['ID'])
 			postJSON = fetchJSON(postURL)
 			while postJSON == -1:
@@ -189,10 +189,10 @@ def getComments():
 			commentQ = parsePost(loadedComments, loadedLinkID, loadedAuthor)
 			
 			if verbose:
-				print '%d comments collected.' % total
+				#print '%d comments collected.' % total
 				log.write('%d comments collected.\n' % total)
 				if len(commentQ) > 0:
-					print 'Loading more comments for %s.' % posts[entry]['ID']
+					#print 'Loading more comments for %s.' % posts[entry]['ID']
 					log.write('Loading more comments for %s.\n' % posts[entry]['ID'])
 			#for each in commentQueue, load pages, parsePosts ...
 			while len(commentQ) > 0:
@@ -200,9 +200,9 @@ def getComments():
 				#print json.dumps(metaList, indent=4)
 				cList = metaList['comments']
 				if verbose:
-					print 'Starting load of %d pages.' % len(cList)
+					#print 'Starting load of %d pages.' % len(cList)
 					log.write('Starting load of %d pages.\n' % len(cList))
-					print cList
+					#print cList
 				for link in cList:
 					start = datetime.datetime.now()
 					postURL = "http://www.reddit.com/comments/" + posts[entry]['ID'] + "/robot/" + link + ".json?sort=top&limit=500"
@@ -219,14 +219,14 @@ def getComments():
 					if(delta.seconds < 2):
 						if verbose:
 							ptime = datetime.datetime.now()
-							print 'Sleeping %ds at %d:%02d.' % ((2-delta.seconds), ptime.hour, ptime.minute)
+							#print 'Sleeping %ds at %d:%02d.' % ((2-delta.seconds), ptime.hour, ptime.minute)
 							log.write('Sleeping %ds at %d:%02d.\n' % ((2-delta.seconds), ptime.hour, ptime.minute))
 						sleep(2-delta.seconds)
 				if verbose:	
-					print "%d meta comment lists remaining." % len(commentQ)
+					#print "%d meta comment lists remaining." % len(commentQ)
 					log.write("%d meta comment lists remaining.\n" % len(commentQ))	
 		if verbose:	
-			print "%d total comments for post %s." % (total, posts[entry]['ID'])
+			#print "%d total comments for post %s." % (total, posts[entry]['ID'])
 			log.write("%d total comments for post %s.\n" % (total, posts[entry]['ID']))				
 								
 
@@ -237,7 +237,7 @@ def parsePost(postComments, parentID, OP, initialDepth=0):
 	commentQ = []
 	toParse.append({'pid':parentID, 'comments':postComments, 'depth':initialDepth})
 	if verbose:
-		print "Parsing post."		
+		#print "Parsing post."		
 		log.write("Parsing post.\n")
 
 	while len(toParse) > 0:
@@ -263,7 +263,7 @@ def parsePost(postComments, parentID, OP, initialDepth=0):
 #add comments to comment list	
 def addComment(child, root, depth, oppa):
 	if verbose:
-		print "Adding comment."		
+		#print "Adding comment."		
 		log.write("Adding comment.\n")
 	data = child['data']
 	global celebList, comments
@@ -299,7 +299,7 @@ def timeUntil3():
 	sleepyTime = h * 60 * 60
 	sleepyTime += m * 60
 	if verbose:
-		print "Time until 3 - %d." % sleepyTime		
+		#print "Time until 3 - %d." % sleepyTime		
 		log.write("Time until 3 - %d.\n" % sleepyTime)
 	return sleepyTime
 
@@ -309,14 +309,14 @@ def getCelebs():
 	flist = os.listdir('./data')
 	pattern = re.compile(r'\d{4}(-\d\d){2}(\.c)?\.json')
 	if verbose:
-		print "Getting celebs."		
+		#print "Getting celebs."		
 		log.write("Getting celebs.\n")
 	for f in flist:
 		if pattern.match(f) != None:
 			if len(f) == 15:
 				loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])))
 				if verbose:
-					print "Getting celebs from posts."		
+					#print "Getting celebs from posts."		
 					log.write("Getting celebs from posts.\n")
 				for entry in posts:
 					if not posts[entry]['Celebrity'] and posts[entry]['User'] in celebList:
@@ -331,7 +331,7 @@ def getCelebs():
 			elif len(f) == 17:
 				loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), 'c')
 				if verbose:
-					print "Getting celebs from comments."		
+					#print "Getting celebs from comments."		
 					log.write("Getting celebs from comments.\n")
 				for entry in comments:
 					if not comments[entry]['Celebrity'] and comments[entry]['User'] in celebList:
@@ -344,9 +344,9 @@ def getCelebs():
 				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), False)
 			else:
 				if verbose:
-					print "ERROR: The regex matched an unsupported file."		
+					#print "ERROR: The regex matched an unsupported file."		
 					log.write("ERROR: The regex matched an unsupported file.\n")
-					print f
+					#print f
 
 #output all to csv
 def toCSV():
@@ -357,7 +357,7 @@ def toCSV():
 	bigList = {}
 
 	if verbose:
-		print "Generating CSV file list."		
+		#print "Generating CSV file list."		
 		log.write("Generating CSV file list.\n")
 	for f in flist:
 		if pattern.match(f) != None:
@@ -384,7 +384,7 @@ def toCSV():
 				lookup[bfname] = cfile
 
 	if verbose:
-		print "Adding to CSV files."		
+		#print "Adding to CSV files."		
 		log.write("Adding to CSV files.\n")
 
 	for key in bigList:
@@ -445,7 +445,7 @@ def parent():
 		
 	log = open('log.txt', 'a', 1)
 	if(verbose):
-		print "User-Agent: %s" % headers['User-Agent']
+		#print "User-Agent: %s" % headers['User-Agent']
 		log.write("User-Agent: %s\n" % headers['User-Agent'])
 		
 	now = datetime.datetime.now()
@@ -473,9 +473,9 @@ def parent():
 			writeFile(currentDate)
 		
 		if verbose:
-			print len(posts)		
+			#print len(posts)		
 			log.write("%d\n" % len(posts))
-			print 'Sleeping 35s at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
+			#print 'Sleeping 35s at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
 			log.write('Sleeping 35s at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
 
 		sleep(35)	
@@ -483,11 +483,11 @@ def parent():
 
 	writeFile(currentDate)
 	if verbose:
-		print "Waiting for child."		
+		#print "Waiting for child."		
 		log.write("Waiting for child.\n")
 	log.close()
 	#pageprint()
-	print len(posts)
+	#print len(posts)
 	os.wait()
 
 def child():
@@ -496,11 +496,11 @@ def child():
 	global log, comments, posts
 	log = open('childLog.txt', 'a', 1)
 	if verbose:
-		print "Log open."		
+		#print "Log open."		
 		log.write("Log open.\n")
 
 	if verbose:
-		print "Sleeping until 3."		
+		#print "Sleeping until 3."		
 		log.write("Sleeping until 3.\n")
 
 	stime = timeUntil3()
@@ -525,7 +525,7 @@ def child():
 		
 		if hasFile:
 			if verbose:
-				print "Day file found. %s" % ftarget[:10]		
+				#print "Day file found. %s" % ftarget[:10]		
 				log.write("Day file found. %s\n" % ftarget[:10])
 			loadFile(targetDate)
 			getComments()
@@ -536,7 +536,7 @@ def child():
 		
 		if datetime.datetime.now() > dayThresh and not hasNext:
 			if verbose:
-				print "Next day not found. %s. Breaking out." % nextTarget[:10]		
+				#print "Next day not found. %s. Breaking out." % nextTarget[:10]		
 				log.write("Next day not found. %s. Breaking out.\n" % nextTarget[:10])
 			break
 
