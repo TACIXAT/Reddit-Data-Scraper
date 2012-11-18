@@ -502,7 +502,7 @@ def child():
 
 	#stime = timeUntil3()
 	#sleep(stime)
-	sleep(32400)
+	sleep(21600)
 
 	while True:
 		ctime = datetime.datetime.now()
@@ -540,7 +540,7 @@ def child():
 
 		#stime = timeUntil3()
 		#sleep(stime)
-		sleep(59400)
+		sleep(86400)
 	getCelebs()
 	toCSV()
 	#TODO CELEBRITY CSV
