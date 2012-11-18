@@ -482,6 +482,9 @@ def parent():
 		now = datetime.datetime.now()
 
 	writeFile(currentDate)
+	if verbose:
+		print "Waiting for child."		
+		log.write("Waiting for child.\n")
 	log.close()
 	#pageprint()
 	print len(posts)
@@ -492,6 +495,14 @@ def child():
 	dayThresh += datetime.timedelta(7)
 	global log, comments, posts
 	log = open('childLog.txt', 'a', 1)
+	if verbose:
+		print "Log open."		
+		log.write("Log open.\n")
+
+	if verbose:
+		print "Sleeping until 3."		
+		log.write("Sleeping until 3.\n")
+
 	stime = timeUntil3()
 	sleep(stime)
 
@@ -499,22 +510,34 @@ def child():
 		ctime = datetime.datetime.now()
 		targetDate = ctime - datetime.timedelta(3)
 		
-		ftarget = str(targetDate)[:10] + ".json"
 		flist = os.listdir('./data')
+		ftarget = str(targetDate)[:10] + ".json"
 		hasFile = False
+
+		nextTarget = str(targetDate + datetime.timedelta(1))[:10] + ".json"
+		hasNext = False
 		
 		for f in flist:
 			if f == ftarget:
 				hasFile = True
-				
+			elif f == nextTarget:
+				hasNext = True
+		
 		if hasFile:
+			if verbose:
+				print "Day file found. %s" % ftarget[:10]		
+				log.write("Day file found. %s\n" % ftarget[:10])
 			loadFile(targetDate)
 			getComments()
 			writeFile(targetDate)
 			writeFile(targetDate, False)
 			comments = {}
 			posts = {}
-		elif datetime.datetime.now() > dayThresh:
+		
+		if datetime.datetime.now() > dayThresh and not hasNext:
+			if verbose:
+				print "Next day not found. %s. Breaking out." % nextTarget[:10]		
+				log.write("Next day not found. %s. Breaking out.\n" % nextTarget[:10])
 			break
 
 		stime = timeUntil3()
@@ -531,121 +554,4 @@ def main():
 	elif pid == 0:
 		child()
 
-#main()
-
-################################
-################################
-################################
-################################
-################################
-################################
-################################
-################################
-################################
-
-target = "http://www.reddit.com/r/AskReddit/.json"
-target = "http://www.reddit.com/r/AskReddit/new/.json?sort=new"
-def parentTest():
-	global log, currentDate, posts, target
-	
-	log = open('log.txt', 'a', 1)
-	if(verbose):
-		print "User-Agent: %s" % headers['User-Agent']
-		log.write("User-Agent: %s\n" % headers['User-Agent'])
-		
-	now = datetime.datetime.now()
-	end = now + datetime.timedelta(0, 30)
-	now = datetime.datetime.now()	#fresher
-	currentDate = now
-	loadFile()
-	i = 0
-	while now < end:
-		if now.day != currentDate.day:
-			writeFile(currentDate)
-			currentDate = now
-			posts = {}
-			loadFile()
-		
-		if verbose:
-			print target		
-			log.write("%s\n" % target)
-	
-		page = fetchJSON(target)
-	
-		while page == -1:
-			page = fetchJSON(target)
-		
-		#print json.dumps(page, indent=4) 
-		updatePosts(page)
-
-		if datetime.datetime.now().minute % 2 == 0:
-			writeFile(currentDate)
-		
-		if verbose:
-			print len(posts)		
-			log.write("%d\n" % len(posts))
-			print 'Sleeping 35s at %d:%02d.' % (datetime.datetime.now().hour, datetime.datetime.now().minute)
-			log.write('Sleeping 35s at %d:%02d.\n' % (datetime.datetime.now().hour, datetime.datetime.now().minute))
-
-		sleep(35)
-		if i % 2 == 0:
-			target = "http://www.reddit.com/r/AskReddit/new/.json?sort=new"
-		else:	
-			target = "http://www.reddit.com/r/AskReddit/controversial/.json"
-		i += 1
-		now = datetime.datetime.now()
-
-	writeFile(currentDate)
-	if verbose:
-		print "Waiting for child."		
-		log.write("Waiting for child.\n")
-	log.close()
-	#pageprint()
-	print len(posts)
-	os.wait()
-
-def childTest():
-	dayThresh = datetime.datetime.now()
-	dayThresh += datetime.timedelta(1)
-	global log, comments, posts
-	log = open('childLog.txt', 'a', 1)
-	stime = timeUntil3()
-	print stime
-	sleep(76)
-
-	while True:
-		ctime = datetime.datetime.now()
-		targetDate = ctime - datetime.timedelta(0)
-		
-		ftarget = str(targetDate)[:10] + ".json"
-		flist = os.listdir('./data')
-		hasFile = False
-		
-		for f in flist:
-			if f == ftarget:
-				hasFile = True
-				
-		if hasFile:
-			loadFile(targetDate)
-			getComments()
-			writeFile(targetDate)
-			writeFile(targetDate, False)
-			comments = {}
-			posts = {}
-		elif datetime.datetime.now() > dayThresh:
-			break
-
-		break
-		stime = timeUntil3()
-		sleep(stime)
-	getCelebs()
-	toCSV()
-	#TODO CELEBRITY CSV
-		
-def test():
-	pid = os.fork()
-	if pid != 0:
-		parentTest()
-	elif pid == 0:
-		childTest()
-test()
+main()
