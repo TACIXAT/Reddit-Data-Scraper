@@ -446,7 +446,7 @@ def parent():
 		log.write("User-Agent: %s\n" % headers['User-Agent'])
 		
 	now = datetime.datetime.now()
-	end = now + datetime.timedelta(7, 30)
+	end = now + datetime.timedelta(1, 30)
 	now = datetime.datetime.now()	#fresher
 
 	currentDate = now
@@ -500,12 +500,13 @@ def child():
 		#print "Sleeping until 3."		
 		log.write("Sleeping until 3.\n")
 
-	stime = timeUntil3()
-	sleep(stime)
+	#stime = timeUntil3()
+	#sleep(stime)
+	sleep(32400)
 
 	while True:
 		ctime = datetime.datetime.now()
-		targetDate = ctime - datetime.timedelta(3)
+		targetDate = ctime - datetime.timedelta(1)
 		
 		flist = os.listdir('./data')
 		ftarget = str(targetDate)[:10] + ".json"
@@ -537,8 +538,9 @@ def child():
 				log.write("Next day not found. %s. Breaking out.\n" % nextTarget[:10])
 			break
 
-		stime = timeUntil3()
-		sleep(stime)
+		#stime = timeUntil3()
+		#sleep(stime)
+		sleep(59400)
 	getCelebs()
 	toCSV()
 	#TODO CELEBRITY CSV
