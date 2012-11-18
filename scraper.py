@@ -157,14 +157,14 @@ def pageprint():
 	skipList = [10, 11, 12, 13]
 	for i in range(0,len(labels)):
 		if i not in skipList:
-			#print labels[i].rjust(widths[i]),
-	#print
+			print labels[i].rjust(widths[i]),
+	print
 	
 	for key in sorted(posts.keys()):
 		for i in range(0,len(posts[key])):
 			if i not in skipList:
-				#print str(posts[key][labels[i]]).rjust(widths[i]),
-		#print
+				print str(posts[key][labels[i]]).rjust(widths[i]),
+		print
 
 total = 0
 
