@@ -195,6 +195,7 @@ def getComments():
 					#print 'Loading more comments for %s.' % posts[entry]['ID']
 					log.write('Loading more comments for %s.\n' % posts[entry]['ID'])
 			#for each in commentQueue, load pages, parsePosts ...
+			sleep(2)
 			while len(commentQ) > 0:
 				metaList = commentQ.pop()
 				#print json.dumps(metaList, indent=4)
@@ -204,7 +205,6 @@ def getComments():
 					log.write('Starting load of %d pages.\n' % len(cList))
 					#print cList
 				for link in cList:
-					start = datetime.datetime.now()
 					postURL = "http://www.reddit.com/comments/" + posts[entry]['ID'] + "/robot/" + link + ".json?sort=top&limit=500"
 					postJSON = fetchJSON(postURL)
 					while postJSON == -1:
@@ -214,14 +214,11 @@ def getComments():
 					loadedAuthor = hash(postJSON[0]['data']['children'][0]['data']['author'])
 					initialDepth = metaList['depth']
 					commentQ += parsePost(loadedComments, loadedLinkID, loadedAuthor, initialDepth)
-					finish = datetime.datetime.now()
-					delta = finish-start
-					if(delta.seconds < 2):
-						if verbose:
-							ptime = datetime.datetime.now()
-							#print 'Sleeping %ds at %d:%02d.' % ((2-delta.seconds), ptime.hour, ptime.minute)
-							log.write('Sleeping %ds at %d:%02d.\n' % ((2-delta.seconds), ptime.hour, ptime.minute))
-						sleep(2-delta.seconds)
+					if verbose:
+						ptime = datetime.datetime.now()
+						#print 'Sleeping 2s at %d:%02d.' % (ptime.hour, ptime.minute)
+						log.write('Sleeping 2s at %d:%02d.\n' % (ptime.hour, ptime.minute))
+					sleep(2)
 				if verbose:	
 					#print "%d meta comment lists remaining." % len(commentQ)
 					log.write("%d meta comment lists remaining.\n" % len(commentQ))	
