@@ -62,7 +62,7 @@ def loadFile(targetDate=datetime.datetime.now(), preExt=""):
 	
 	if hasMatch:
 		if verbose:
-			logger('File match found.\nLoading json.')
+			logger('File match found. %s\nLoading json.', (sfname))
 		f = open(ffname)
 		loaded = json.load(f)
 		
@@ -75,7 +75,7 @@ def loadFile(targetDate=datetime.datetime.now(), preExt=""):
 
 	else:
 		if verbose:
-			logger('No match found.\nCreating file.')
+			logger('No match found.\nCreating file. %s', (sfname))
 		f = open(ffname, 'w')
 	
 	f.close()
@@ -414,7 +414,7 @@ def parent():
 			writeFile(currentDate)
 			currentDate = now
 			posts = {}
-			loadFile()
+			loadFile(currentDate) #there's an error where this did clear the posts ..? testing on askreddit run
 
 		page = fetchJSON(target)
 	
