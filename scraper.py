@@ -72,7 +72,6 @@ def loadFile(targetDate=datetime.datetime.now(), preExt=""):
 		elif preExt == ".c":
 			global comments
 			comments = loaded
-
 	else:
 		if verbose:
 			logger('No match found.\nCreating file. %s', (sfname))
@@ -407,14 +406,15 @@ def parent():
 	now = datetime.datetime.now()	#fresher
 
 	currentDate = now
-	loadFile()
+	loadFile(currentDate)
 
 	while now < end:
 		if now.day != currentDate.day:
 			writeFile(currentDate)
 			currentDate = now
 			posts = {}
-			loadFile(currentDate) #there's an error where this did clear the posts ..? testing on askreddit run
+			loadFile(currentDate) 
+			#if above call is without args then it uses previous day's date... ask stackoverflow about python execution
 
 		page = fetchJSON(target)
 	
