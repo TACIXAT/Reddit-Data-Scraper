@@ -181,7 +181,7 @@ def getComments():
 				logger('Loading comments for %s.', posts[entry]['ID'])
 			postJSON = fetchJSON(postURL)
 			while postJSON == -1:
-				fetchJSON(postURL)
+				postJSON = fetchJSON(postURL)
 			updatePosts(postJSON[0])
 			loadedComments = postJSON[1]['data']['children']
 			loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
@@ -203,7 +203,7 @@ def getComments():
 					postURL = "http://www.reddit.com/comments/" + posts[entry]['ID'] + "/robot/" + link + ".json?sort=top&limit=500"
 					postJSON = fetchJSON(postURL)
 					while postJSON == -1:
-						fetchJSON(postURL)
+						postJSON = fetchJSON(postURL)
 					loadedComments = postJSON[1]['data']['children']
 					loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
 					loadedAuthor = hash(postJSON[0]['data']['children'][0]['data']['author'])
