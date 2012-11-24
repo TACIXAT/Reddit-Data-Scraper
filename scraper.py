@@ -86,16 +86,16 @@ def fetchJSON(URL):
 	try:
 		response = urllib2.urlopen(req)
 	except urllib2.HTTPError, e:
-		logger(str(e.code))
+		logger("LOAD ERROR: %s", str(e.code))
 		sleep(10)
 		return -1
 	except urllib2.URLError, e:
-		logger(str(e.args))
+		logger("URL ERROR: %s", str(e.args))
 		sleep(10)
 		return -1
 	
-	if verbose:
-		logger('Response received.')
+	#if verbose:
+		#logger('Response received.')
 	
 	jsonpage = json.load(response)
 	return jsonpage
@@ -103,8 +103,8 @@ def fetchJSON(URL):
 #move json into dict posts
 def updatePosts(page):
 	global celebList
-	if verbose:
-		logger('Adding json page listings to posts object.')
+	#if verbose:
+		#logger('Adding json page listings to posts object.')
 	#print json.dumps(page, indent=4)
 	UTCFilter = datetime.datetime(currentDate.year, currentDate.month, currentDate.day).strftime('%s')
 	for child in page['data']['children']:
@@ -197,9 +197,10 @@ def getComments():
 			while len(commentQ) > 0:
 				metaList = commentQ.pop()
 				cList = metaList['comments']
-				if verbose:
-					logger('Starting load of %d pages.', len(cList))
+				#if verbose:
+					#logger('Starting load of %d pages.', len(cList))
 				for link in cList:
+					start = datetime.datetime.now()
 					postURL = "http://www.reddit.com/comments/" + posts[entry]['ID'] + "/robot/" + link + ".json?sort=top&limit=500"
 					postJSON = fetchJSON(postURL)
 					while postJSON == -1:
@@ -209,10 +210,14 @@ def getComments():
 					loadedAuthor = hash(postJSON[0]['data']['children'][0]['data']['author'])
 					initialDepth = metaList['depth']
 					commentQ += parsePost(loadedComments, loadedLinkID, loadedAuthor, initialDepth)
-					if verbose:
-						logger('Sleeping 2s.')
-					sleep(2)
+					#if verbose:
+						#logger('Sleeping 2s.')
+					finish = datetime.datetime.now()
+					delta = finish-start
+					if delta.seconds < 2:
+					sleep(2-delta.seconds)
 				if verbose:	
+					logger("%d comments for post %s.", (total, posts[entry]['ID']))
 					logger("%d meta comment lists remaining.", len(commentQ))	
 		if verbose:	
 			logger("%d total comments for post %s.", (total, posts[entry]['ID']))				
@@ -224,8 +229,8 @@ def parsePost(postComments, parentID, OP, initialDepth=0):
 	toParse = []
 	commentQ = []
 	toParse.append({'pid':parentID, 'comments':postComments, 'depth':initialDepth})
-	if verbose:
-		logger("Parsing post.")
+	#if verbose:
+		#logger("Parsing post.")
 
 	while len(toParse) > 0:
 		metaChild = toParse.pop()
@@ -302,7 +307,7 @@ def getCelebs():
 				for entry in posts:
 					if not posts[entry]['Celebrity'] and posts[entry]['User'] in celebList:
 						url = 'http://www.reddit.com/by_id/t3_' + posts[entry]['ID'] + '/.json'
-						celebPost = fetchJSON()
+						celebPost = fetchJSON(url)
 						celebPost = celebPost['data']['children'][0]['data']
 						posts[entry]['Celebrity'] = True
 						posts[entry]['Title'] = celebPost['title']
@@ -316,7 +321,7 @@ def getCelebs():
 				for entry in comments:
 					if not comments[entry]['Celebrity'] and comments[entry]['User'] in celebList:
 						url = 'http://www.reddit.com/comments/' + comments[entry]['Parent'] + '/robot/' + comments[entry]['ID'] + '/.json'
-						celebPost = fetchJSON()
+						celebPost = fetchJSON(url)
 						celebPost = celebPost[1]['data']['children'][0]['data']
 						comments[entry]['Celebrity'] = True
 						comments[entry]['Content'] = celebPost['selftext']
@@ -428,7 +433,7 @@ def parent():
 		
 		if verbose:
 			logger("Number of posts: %d", len(posts))
-			logger('Sleeping 35s.')
+			#logger('Sleeping 35s.')
 
 		sleep(35)	
 		now = datetime.datetime.now()
@@ -448,11 +453,11 @@ def child():
 	if verbose:
 		logger("Log open.")
 
-	if verbose:
-		logger("Sleeping until 3.")
+	#if verbose:
+		#logger("Sleeping until 3.")
 
-	stime = timeUntil3()
-	sleep(stime)
+	#stime = timeUntil3()
+	#sleep(stime)
 
 	while True:
 		ctime = datetime.datetime.now()
@@ -460,18 +465,21 @@ def child():
 		
 		flist = os.listdir('./data')
 		ftarget = str(targetDate)[:10] + ".json"
+		ctarget = str(targetDate)[:10] + ".c.json"]
 		hasFile = False
 
 		nextTarget = str(targetDate + datetime.timedelta(1))[:10] + ".json"
 		hasNext = False
-		
+		hasTComments = False
 		for f in flist:
 			if f == ftarget:
 				hasFile = True
 			elif f == nextTarget:
 				hasNext = True
+			elif f == ctarget:
+				hasTComments = True
 		
-		if hasFile:
+		if hasFile and not hasTComments:
 			if verbose:
 				logger("Day file found. %s", ftarget[:10])
 			loadFile(targetDate)
@@ -486,8 +494,9 @@ def child():
 				logger("Next day not found. %s. Breaking out.", nextTarget[:10])
 			break
 
-		stime = timeUntil3()
-		sleep(stime)
+		if str(datetime.datetime.now()-2)[:10] == nextTarget[:10]: 
+			stime = timeUntil3()
+			sleep(stime)
 	getCelebs()
 	toCSV()
 	#TODO CELEBRITY CSV
