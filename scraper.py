@@ -215,7 +215,7 @@ def getComments():
 					finish = datetime.datetime.now()
 					delta = finish-start
 					if delta.seconds < 2:
-					sleep(2-delta.seconds)
+						sleep(2-delta.seconds)
 				if verbose:	
 					logger("%d comments for post %s.", (total, posts[entry]['ID']))
 					logger("%d meta comment lists remaining.", len(commentQ))	
@@ -465,7 +465,7 @@ def child():
 		
 		flist = os.listdir('./data')
 		ftarget = str(targetDate)[:10] + ".json"
-		ctarget = str(targetDate)[:10] + ".c.json"]
+		ctarget = str(targetDate)[:10] + ".c.json"
 		hasFile = False
 
 		nextTarget = str(targetDate + datetime.timedelta(1))[:10] + ".json"
