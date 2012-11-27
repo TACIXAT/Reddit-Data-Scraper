@@ -384,7 +384,7 @@ def getCelebs():
 						celebPost = fetchJSON(url)
 						celebPost = celebPost[1]['data']['children'][0]['data']
 						comments[entry]['Celebrity'] = True
-						comments[entry]['Content'] = celebPost['selftext']
+						comments[entry]['Content'] = celebPost['body']
 						sleep(2)
 				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), False)
 			else:
@@ -526,11 +526,11 @@ def child():
 				if fpat.match(ea) != None:
 					cfile = ea[:10] + '.c.json'
 					if cfile not in flist:
-						tdate = datetime.datetime(int(ea[:4]), int(ea[5:7]), int(ea[8:10]))
+						tDate = datetime.datetime(int(ea[:4]), int(ea[5:7]), int(ea[8:10]))
 						loadFile(tDate)
 						getComments()
-						writeFile(targetDate)
-						writeFile(targetDate, False)
+						writeFile(tDate)
+						writeFile(tDate, False)
 						comments = {}
 						posts = {}
 
