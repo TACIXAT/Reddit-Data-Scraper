@@ -208,6 +208,9 @@ def getComments():
 				start = datetime.datetime.now()
 				metaList = commentQ.pop()
 				postJSON = getMore(metaList, loadedName, loadedAuthor)
+				if postJSON == -1:
+					print metaList
+					continue
 
 				loadedComments = postJSON[1]['data']['children']
 				initialDepth = metaList['depth']
@@ -252,6 +255,7 @@ def getMore(metaList, linkName, linkAuthor):
 			response = -1
 
 	page = json.load(response) #get back crappy jquery flat list
+	logger("%s", page)
 	proto = {'kind':'Listing', 'data':{'children':[], 'modhash':"", 'before':None, 'after':None}}
 	datar = []	#mock page
 	datar.append({'kind':'Listing', 'data':{'children':[{'kind':'t3', 'data':{'id':linkName[3:],'author':linkAuthor,'name':linkName}}]}})
@@ -259,17 +263,20 @@ def getMore(metaList, linkName, linkAuthor):
 
 	dlookup = {}
 
-	for entry in page['jquery'][14][3][0]:
-	    dlookup[entry['data']['name']] = entry
+	if len(page['jquery']) > 14:
+		for entry in page['jquery'][14][3][0]:
+		    dlookup[entry['data']['name']] = entry
 
-	for entry in page['jquery'][14][3][0]:
-	    pid = entry['data']['parent_id'] 
-	    if pid in dlookup:
-	        if 'children' not in dlookup[pid]['data']:
-	            dlookup[pid]['data']['replies'] = copy.deepcopy(proto)
-	        dlookup[pid]['data']['replies']['data']['children'].append(entry)
-	    else:
-	        datar[1]['data']['children'].append(entry)	
+		for entry in page['jquery'][14][3][0]:
+		    pid = entry['data']['parent_id'] 
+		    if pid in dlookup:
+		        if 'children' not in dlookup[pid]['data']:
+		            dlookup[pid]['data']['replies'] = copy.deepcopy(proto)
+		        dlookup[pid]['data']['replies']['data']['children'].append(entry)
+		    else:
+		        datar[1]['data']['children'].append(entry)	
+	else:
+		datar = -1
 
 	return datar
 
@@ -322,7 +329,8 @@ def addComment(child, root, depth, oppa):
 			'Timestamp':data['created_utc'],
 			'Celebrity':False,
 			'Title':None,
-			'Content':None}
+			'Content':None,
+			'PostID':data['link_id'][3:]}
 		if hash(data['author']) == oppa:
 			comments[data['id']]['OP'] = True
 		if data['ups'] > 49 or data['downs'] > 49 or hash(data['author']) in celebList:
@@ -359,6 +367,8 @@ def getCelebs():
 					if not posts[entry]['Celebrity'] and posts[entry]['User'] in celebList:
 						url = 'http://www.reddit.com/by_id/t3_' + posts[entry]['ID'] + '/.json'
 						celebPost = fetchJSON(url)
+						while celebPost == -1:
+							celebPost = fetchJSON(url)
 						celebPost = celebPost['data']['children'][0]['data']
 						posts[entry]['Celebrity'] = True
 						posts[entry]['Title'] = celebPost['title']
@@ -371,7 +381,7 @@ def getCelebs():
 					logger("Getting celebs from comments.")
 				for entry in comments:
 					if not comments[entry]['Celebrity'] and comments[entry]['User'] in celebList:
-						url = 'http://www.reddit.com/comments/' + comments[entry]['Parent'] + '/robot/' + comments[entry]['ID'] + '/.json'
+						url = 'http://www.reddit.com/comments/' + comments[entry]['PostID'] + '/robot/' + comments[entry]['ID'] + '/.json'
 						celebPost = fetchJSON(url)
 						celebPost = celebPost[1]['data']['children'][0]['data']
 						comments[entry]['Celebrity'] = True
@@ -504,11 +514,27 @@ def child():
 	if verbose:
 		logger("Log open.")
 
-	#if verbose:
-		#logger("Sleeping until 3.")
+	#get old stuff first since some days were missed due to bugs
+	if True:
+		dayThresh = datetime.datetime.now() - datetime.timedelta(3)
+		breakFile = str(dayThresh)[:10] + '.json'
+		flist = os.listdir('./data')
+		fpat = re.compile(r'\d{4}(-\d\d){2}\.json')
+		for ea in sorted(flist):
+			if ea == breakFile:
+				break
+			else:
+				if fpat.match(ea) != None:
+					cfile = ea[:10] + '.c.json'
+					if cfile not in flist:
+						tdate = datetime.datetime(int(ea[:4]), int(ea[5:7]), int(ea[8:10]))
+						loadFile(tDate)
+						getComments()
+						writeFile(targetDate)
+						writeFile(targetDate, False)
+						comments = {}
+						posts = {}
 
-	#stime = timeUntil3()
-	#sleep(stime)
 
 	while True:
 		ctime = datetime.datetime.now()
@@ -560,25 +586,25 @@ def main():
 	elif pid == 0:
 		child()
 
-def childCommentTest():
-	global log, comments, posts
-	comments = {}
-	posts = {}
-	log = open('childLogTest.txt', 'a', 1)
-	if verbose:
-		logger("Log open.")
-	targetDate = datetime.datetime(2010,02,19)
-	loadFile(targetDate)
-	getComments()
-	#writeFile(targetDate)
-	writeFile(targetDate, False)
-	comments = {}
-	posts = {}
-	getCelebs()
-	toCSV()
+# def childCommentTest():
+# 	global log, comments, posts
+# 	comments = {}
+# 	posts = {}
+# 	log = open('childLogTest.txt', 'a', 1)
+# 	if verbose:
+# 		logger("Log open.")
+# 	targetDate = datetime.datetime(2010,02,19)
+# 	loadFile(targetDate)
+# 	getComments()
+# 	writeFile(targetDate)
+# 	writeFile(targetDate, False)
+# 	comments = {}
+# 	posts = {}
+# 	getCelebs()
+# 	toCSV()
 
-def test():
-	childCommentTest()
-test()
+# def test():
+# 	childCommentTest()
+# test()
 
-#main()
+main()
