@@ -88,11 +88,11 @@ def fetchJSON(URL):
 	try:
 		response = urllib2.urlopen(req)
 	except urllib2.HTTPError, e:
-		logger("LOAD ERROR: %s", str(e.code))
+		logger("LOAD ERROR: %s\n\t%s", (str(e.code), URL))
 		sleep(10)
 		return -1
 	except urllib2.URLError, e:
-		logger("URL ERROR: %s", str(e.args))
+		logger("URL ERROR: %s\n\t%s", (str(e.args), URL))
 		sleep(10)
 		return -1
 	
@@ -133,8 +133,8 @@ def updatePosts(page):
 			posts[data['id']]['Downs'] = data['downs'] 
 			if data['ups'] > 49 or hash(data['author']) in celebList:
 				posts[data['id']]['Celebrity'] = True
-				posts[data['id']]['Title'] = data['title']
-				posts[data['id']]['Content'] = data['selftext']
+				posts[data['id']]['Title'] = data['title'].encode('utf-8')
+				posts[data['id']]['Content'] = data['selftext'].encode('utf-8')
 				if hash(data['author']) not in celebList:
 					celebList.append(hash(data['author']))
 	
@@ -185,8 +185,15 @@ def getComments():
 				logger('Loading comments for %s.', posts[entry]['ID'])
 			#fetch as many comments as possible
 			postJSON = fetchJSON(postURL)
-			while postJSON == -1:
+			count = 0
+			while postJSON == -1 or len(postJSON) == 0:
 				postJSON = fetchJSON(postURL)
+				count += 1
+				logger("Retry %d", count)
+				if count > 9:
+					break
+			if count == 10:
+				continue
 			#update OP
 			updatePosts(postJSON[0])
 			#separate the comments
@@ -334,7 +341,7 @@ def addComment(child, root, depth, oppa):
 			comments[data['id']]['OP'] = True
 		if data['ups'] > 49 or data['downs'] > 49 or hash(data['author']) in celebList:
 			comments[data['id']]['Celebrity'] = True
-			comments[data['id']]['Content'] = data['body']
+			comments[data['id']]['Content'] = data['body'].encode('utf-8')
 			if hash(data['author']) not in celebList:
 				celebList.append(hash(data['author']))
 			
@@ -370,8 +377,8 @@ def getCelebs():
 							celebPost = fetchJSON(url)
 						celebPost = celebPost['data']['children'][0]['data']
 						posts[entry]['Celebrity'] = True
-						posts[entry]['Title'] = celebPost['title']
-						posts[entry]['Content'] = celebPost['selftext']
+						posts[entry]['Title'] = celebPost['title'].encode('utf-8')
+						posts[entry]['Content'] = celebPost['selftext'].encode('utf-8')
 						sleep(2)
 				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])))
 			elif len(f) == 17:
@@ -384,7 +391,7 @@ def getCelebs():
 						celebPost = fetchJSON(url)
 						celebPost = celebPost[1]['data']['children'][0]['data']
 						comments[entry]['Celebrity'] = True
-						comments[entry]['Content'] = celebPost['body']
+						comments[entry]['Content'] = celebPost['body'].encode('utf-8')
 						sleep(2)
 				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), False)
 			else:
