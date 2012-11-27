@@ -133,8 +133,8 @@ def updatePosts(page):
 			posts[data['id']]['Downs'] = data['downs'] 
 			if data['ups'] > 49 or hash(data['author']) in celebList:
 				posts[data['id']]['Celebrity'] = True
-				posts[data['id']]['Title'] = data['title'].encode('utf-8')
-				posts[data['id']]['Content'] = data['selftext'].encode('utf-8')
+				posts[data['id']]['Title'] = data['title'].encode('ascii','xmlcharrefreplace')
+				posts[data['id']]['Content'] = data['selftext'].encode('ascii','xmlcharrefreplace')
 				if hash(data['author']) not in celebList:
 					celebList.append(hash(data['author']))
 	
@@ -341,7 +341,7 @@ def addComment(child, root, depth, oppa):
 			comments[data['id']]['OP'] = True
 		if data['ups'] > 49 or data['downs'] > 49 or hash(data['author']) in celebList:
 			comments[data['id']]['Celebrity'] = True
-			comments[data['id']]['Content'] = data['body'].encode('utf-8')
+			comments[data['id']]['Content'] = data['body'].encode('ascii','xmlcharrefreplace')
 			if hash(data['author']) not in celebList:
 				celebList.append(hash(data['author']))
 			
@@ -377,8 +377,8 @@ def getCelebs():
 							celebPost = fetchJSON(url)
 						celebPost = celebPost['data']['children'][0]['data']
 						posts[entry]['Celebrity'] = True
-						posts[entry]['Title'] = celebPost['title'].encode('utf-8')
-						posts[entry]['Content'] = celebPost['selftext'].encode('utf-8')
+						posts[entry]['Title'] = celebPost['title'].encode('ascii','xmlcharrefreplace')
+						posts[entry]['Content'] = celebPost['selftext'].encode('ascii','xmlcharrefreplace')
 						sleep(2)
 				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])))
 			elif len(f) == 17:
@@ -391,7 +391,7 @@ def getCelebs():
 						celebPost = fetchJSON(url)
 						celebPost = celebPost[1]['data']['children'][0]['data']
 						comments[entry]['Celebrity'] = True
-						comments[entry]['Content'] = celebPost['body'].encode('utf-8')
+						comments[entry]['Content'] = celebPost['body'].encode('ascii','xmlcharrefreplace')
 						sleep(2)
 				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), False)
 			else:
