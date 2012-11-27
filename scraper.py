@@ -209,7 +209,6 @@ def getComments():
 				metaList = commentQ.pop()
 				postJSON = getMore(metaList, loadedName, loadedAuthor)
 				if postJSON == -1:
-					print metaList
 					continue
 
 				loadedComments = postJSON[1]['data']['children']
@@ -255,7 +254,7 @@ def getMore(metaList, linkName, linkAuthor):
 			response = -1
 
 	page = json.load(response) #get back crappy jquery flat list
-	logger("%s", page)
+	#logger("%s", page)
 	proto = {'kind':'Listing', 'data':{'children':[], 'modhash':"", 'before':None, 'after':None}}
 	datar = []	#mock page
 	datar.append({'kind':'Listing', 'data':{'children':[{'kind':'t3', 'data':{'id':linkName[3:],'author':linkAuthor,'name':linkName}}]}})
