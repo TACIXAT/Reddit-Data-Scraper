@@ -9,8 +9,10 @@ import re
 from time import sleep
 import datetime
 import urllib2
+import urllib
 import json
 import csv
+import copy
 
 #global declares
 verbose = True
@@ -173,19 +175,27 @@ total = 0
 def getComments():
 	global total
 	commentQ = []
+	#for each post
 	for entry in posts:
 		total = 0
+		#make sure it's a post
 		if posts[entry]['Link'] == True:
 			postURL = "http://www.reddit.com/comments/" + posts[entry]['ID'] + ".json?sort=top&limit=500"
 			if verbose:
 				logger('Loading comments for %s.', posts[entry]['ID'])
+			#fetch as many comments as possible
 			postJSON = fetchJSON(postURL)
 			while postJSON == -1:
 				postJSON = fetchJSON(postURL)
+			#update OP
 			updatePosts(postJSON[0])
+			#separate the comments
 			loadedComments = postJSON[1]['data']['children']
+			#get id and author
 			loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
+			loadedName = postJSON[0]['data']['children'][0]['data']['name']
 			loadedAuthor = hash(postJSON[0]['data']['children'][0]['data']['author'])
+			#initialize the post's comment queue
 			commentQ = parsePost(loadedComments, loadedLinkID, loadedAuthor)
 			
 			if verbose:
@@ -195,33 +205,74 @@ def getComments():
 			#for each in commentQueue, load pages, parsePosts ...
 			sleep(2)
 			while len(commentQ) > 0:
+				start = datetime.datetime.now()
 				metaList = commentQ.pop()
-				cList = metaList['comments']
-				#if verbose:
-					#logger('Starting load of %d pages.', len(cList))
-				for link in cList:
-					start = datetime.datetime.now()
-					postURL = "http://www.reddit.com/comments/" + posts[entry]['ID'] + "/robot/" + link + ".json?sort=top&limit=500"
-					postJSON = fetchJSON(postURL)
-					while postJSON == -1:
-						postJSON = fetchJSON(postURL)
-					loadedComments = postJSON[1]['data']['children']
-					loadedLinkID = postJSON[0]['data']['children'][0]['data']['id']
-					loadedAuthor = hash(postJSON[0]['data']['children'][0]['data']['author'])
-					initialDepth = metaList['depth']
-					commentQ += parsePost(loadedComments, loadedLinkID, loadedAuthor, initialDepth)
-					#if verbose:
-						#logger('Sleeping 2s.')
-					finish = datetime.datetime.now()
-					delta = finish-start
-					if delta.seconds < 2:
-						sleep(2-delta.seconds)
+				postJSON = getMore(metaList, loadedName, loadedAuthor)
+
+				loadedComments = postJSON[1]['data']['children']
+				initialDepth = metaList['depth']
+				commentQ += parsePost(loadedComments, loadedLinkID, loadedAuthor, initialDepth)
+
+				finish = datetime.datetime.now()
+				delta = finish-start
+				if delta.seconds < 2:
+					sleep(2-delta.seconds)
+
 				if verbose:	
 					logger("%d comments for post %s.", (total, posts[entry]['ID']))
 					logger("%d meta comment lists remaining.", len(commentQ))	
 		if verbose:	
 			logger("%d total comments for post %s.", (total, posts[entry]['ID']))				
-								
+
+def getMore(metaList, linkName, linkAuthor):
+	moreObj = metaList['moreObj']
+	clist = moreObj['children']
+	
+	childs = ''
+	for ea in clist:
+		childs += ea + ','
+	childs = childs[:len(childs)-1] #remove comma
+
+	postURL = 'http://www.reddit.com/api/morechildren/.json'	
+	values = {'children':childs, 'link_id':linkName, 'id':moreObj['name']}
+	data = urllib.urlencode(values)
+	req = urllib2.Request(postURL, data, headers)
+
+	response = -1
+	while response == -1:
+		try:
+			response = urllib2.urlopen(req)
+		except urllib2.HTTPError, e:
+			logger("LOAD ERROR: %s", str(e.code))
+			sleep(2)
+			response = -1
+		except urllib2.URLError, e:
+			logger("URL ERROR: %s", str(e.args))
+			sleep(2)
+			response = -1
+
+	page = json.load(response) #get back crappy jquery flat list
+	proto = {'kind':'Listing', 'data':{'children':[], 'modhash':"", 'before':None, 'after':None}}
+	datar = []	#mock page
+	datar.append({'kind':'Listing', 'data':{'children':[{'kind':'t3', 'data':{'id':linkName[3:],'author':linkAuthor,'name':linkName}}]}})
+	datar.append({'kind':'Listing', 'data':{'modhash':"", 'children':[], 'before':None, 'after':None}})
+
+	dlookup = {}
+
+	for entry in page['jquery'][14][3][0]:
+	    dlookup[entry['data']['name']] = entry
+
+	for entry in page['jquery'][14][3][0]:
+	    pid = entry['data']['parent_id'] 
+	    if pid in dlookup:
+	        if 'children' not in dlookup[pid]['data']:
+	            dlookup[pid]['data']['replies'] = copy.deepcopy(proto)
+	        dlookup[pid]['data']['replies']['data']['children'].append(entry)
+	    else:
+	        datar[1]['data']['children'].append(entry)	
+
+	return datar
+
 
 #parse comments, append 'more' sections to queue					
 def parsePost(postComments, parentID, OP, initialDepth=0):
@@ -246,7 +297,7 @@ def parsePost(postComments, parentID, OP, initialDepth=0):
 					else:
 						toParse.append({'pid':metaChild['pid'], 'comments':child['data']['replies']['data']['children'], 'depth':(metaChild['depth']+1)})
 			elif child['kind'] == 'more':
-				commentQ.append({'pid':metaChild['pid'], 'comments':child['data']['children'], 'depth':metaChild['depth']})
+				commentQ.append({'pid':metaChild['pid'], 'moreObj':child['data'], 'depth':metaChild['depth']})
 			else:
 				raise Exception('unknown type %s' % child['kind'])
 
@@ -494,7 +545,7 @@ def child():
 				logger("Next day not found. %s. Breaking out.", nextTarget[:10])
 			break
 
-		if str(datetime.datetime.now()-2)[:10] == nextTarget[:10]: 
+		if str(datetime.datetime.now()-datetime.timedelta(2))[:10] == nextTarget[:10]: 
 			stime = timeUntil3()
 			sleep(stime)
 	getCelebs()
@@ -509,4 +560,25 @@ def main():
 	elif pid == 0:
 		child()
 
-main()
+def childCommentTest():
+	global log, comments, posts
+	comments = {}
+	posts = {}
+	log = open('childLogTest.txt', 'a', 1)
+	if verbose:
+		logger("Log open.")
+	targetDate = datetime.datetime(2010,02,19)
+	loadFile(targetDate)
+	getComments()
+	#writeFile(targetDate)
+	writeFile(targetDate, False)
+	comments = {}
+	posts = {}
+	getCelebs()
+	toCSV()
+
+def test():
+	childCommentTest()
+test()
+
+#main()
