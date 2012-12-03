@@ -356,6 +356,26 @@ def timeUntil3():
 		logger("Time until 3 - %d.", sleepyTime)
 	return sleepyTime
 
+def buildCelebList():
+	global celebList
+	flist = os.listdir('./data/')
+
+	for fname in flist:
+		count = 0
+		print fname
+		f = open('./data/' + fname)
+		r = f.read()
+		f.close()
+		jpage = json.loads(r)
+
+		for entry in jpage:
+			if jpage[entry]['Celebrity'] and jpage[entry]['User'] not in celebList:
+				print jpage[entry]
+				celebList.append(jpage[entry]['User'])
+				count += 1
+
+		print count
+
 #get celeb posts before they were cool
 def getCelebs():
 	global posts, comments, celebList
@@ -441,6 +461,7 @@ def initCSV(opened):
 					'Upvotes', 
 					'Downvotes', 
 					'Post', 
+					'PostID',
 					'OP', 
 					'Parent', 
 					'Root', 
@@ -451,12 +472,18 @@ def initCSV(opened):
 	return cfile
 
 def writeRowCSV(csvFile, entry):
+	LID = None
+	if 'PostID' in entry:
+		LID = entry['PostID']
+	else:
+		LID = entry['ID']
 	csvFile.writerow([entry['ID'], 
 					entry['User'], 
 					entry['Total'], 
 					entry['Ups'], 
 					entry['Downs'], 
 					entry['Link'], 
+					LID,
 					entry['OP'],
 					entry['Parent'], 
 					entry['Highest'], 
@@ -586,11 +613,19 @@ def child():
 
 #main
 def main():
-	pid = os.fork()
-	if pid != 0:
-		parent()
-	elif pid == 0:
-		child()
+	global log
+	log = open('cleanUpLog.txt', 'a', 1)
+	buildCelebList()
+	#f = open('celebList.json', 'w')
+	#f.write(json.dumps(celebList, indent=4))
+	#f.close()
+	getCelebs()
+	toCSV()
+	#pid = os.fork()
+	#if pid != 0:
+	#	parent()
+	#elif pid == 0:
+	#	child()
 
 # def childCommentTest():
 # 	global log, comments, posts
