@@ -16,7 +16,7 @@ import copy
 
 #global declares
 verbose = True
-targetSubreddit = 'AskReddit'
+targetSubreddit = 'pics'
 target = "http://www.reddit.com/r/" + targetSubreddit + "/new/.json?sort=new"
 posts = {}
 comments = {}
@@ -45,7 +45,7 @@ def logger(fmat, args=None):
 		log.write(message % args)
 
 #set User-Agent
-headers = {'User-Agent' : 'scraper bot goes far\\Ubuntu 12.04 64\\Python\\user robot_one'}
+headers = {'User-Agent' : 'scraper bot go far\\Ubuntu 12.04 64\\Python\\user robot_one'}
 	
 #load or create file
 def loadFile(targetDate=datetime.datetime.now(), preExt=""):
@@ -134,7 +134,7 @@ def updatePosts(page):
 			if data['ups'] > 49 or hash(data['author']) in celebList:
 				posts[data['id']]['Celebrity'] = True
 				posts[data['id']]['Title'] = data['title'].encode('ascii','xmlcharrefreplace')
-				posts[data['id']]['Content'] = data['selftext'].encode('ascii','xmlcharrefreplace')
+				posts[data['id']]['Content'] = data['url'].encode('ascii','xmlcharrefreplace')
 				if hash(data['author']) not in celebList:
 					celebList.append(hash(data['author']))
 	
@@ -210,7 +210,7 @@ def getComments():
 				if len(commentQ) > 0:
 					logger('Loading more comments for %s.', posts[entry]['ID'])
 			#for each in commentQueue, load pages, parsePosts ...
-			sleep(2)
+			sleep(4)
 			while len(commentQ) > 0:
 				start = datetime.datetime.now()
 				metaList = commentQ.pop()
@@ -225,7 +225,7 @@ def getComments():
 				finish = datetime.datetime.now()
 				delta = finish-start
 				if delta.seconds < 2:
-					sleep(2-delta.seconds)
+					sleep(4-delta.seconds)
 
 				if verbose:	
 					logger("%d comments for post %s.", (total, posts[entry]['ID']))
@@ -253,11 +253,11 @@ def getMore(metaList, linkName, linkAuthor):
 			response = urllib2.urlopen(req)
 		except urllib2.HTTPError, e:
 			logger("LOAD ERROR: %s", str(e.code))
-			sleep(2)
+			sleep(4)
 			response = -1
 		except urllib2.URLError, e:
 			logger("URL ERROR: %s", str(e.args))
-			sleep(2)
+			sleep(4)
 			response = -1
 
 	page = json.load(response) #get back crappy jquery flat list
@@ -370,7 +370,7 @@ def buildCelebList():
 
 		for entry in jpage:
 			if jpage[entry]['Celebrity'] and jpage[entry]['User'] not in celebList:
-				print jpage[entry]
+				#print jpage[entry]
 				celebList.append(jpage[entry]['User'])
 				count += 1
 
@@ -398,8 +398,8 @@ def getCelebs():
 						celebPost = celebPost['data']['children'][0]['data']
 						posts[entry]['Celebrity'] = True
 						posts[entry]['Title'] = celebPost['title'].encode('ascii','xmlcharrefreplace')
-						posts[entry]['Content'] = celebPost['selftext'].encode('ascii','xmlcharrefreplace')
-						sleep(2)
+						posts[entry]['Content'] = celebPost['url'].encode('ascii','xmlcharrefreplace')
+						sleep(4)
 				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])))
 			elif len(f) == 17:
 				loadFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), 'c')
@@ -412,7 +412,7 @@ def getCelebs():
 						celebPost = celebPost[1]['data']['children'][0]['data']
 						comments[entry]['Celebrity'] = True
 						comments[entry]['Content'] = celebPost['body'].encode('ascii','xmlcharrefreplace')
-						sleep(2)
+						sleep(4)
 				writeFile(datetime.datetime(int(f[:4]), int(f[5:7]), int(f[8:10])), False)
 			else:
 				if verbose:
@@ -547,28 +547,6 @@ def child():
 	if verbose:
 		logger("Log open.")
 
-	#get old stuff first since some days were missed due to bugs
-	if True:
-		dayThresh = datetime.datetime.now() - datetime.timedelta(3)
-		breakFile = str(dayThresh)[:10] + '.json'
-		flist = os.listdir('./data')
-		fpat = re.compile(r'\d{4}(-\d\d){2}\.json')
-		for ea in sorted(flist):
-			if ea == breakFile:
-				break
-			else:
-				if fpat.match(ea) != None:
-					cfile = ea[:10] + '.c.json'
-					if cfile not in flist:
-						tDate = datetime.datetime(int(ea[:4]), int(ea[5:7]), int(ea[8:10]))
-						loadFile(tDate)
-						getComments()
-						writeFile(tDate)
-						writeFile(tDate, False)
-						comments = {}
-						posts = {}
-
-
 	while True:
 		ctime = datetime.datetime.now()
 		targetDate = ctime - datetime.timedelta(3)
@@ -607,45 +585,16 @@ def child():
 		if str(datetime.datetime.now()-datetime.timedelta(2))[:10] == nextTarget[:10]: 
 			stime = timeUntil3()
 			sleep(stime)
-	getCelebs()
-	toCSV()
+	#getCelebs()
+	#toCSV()
 	#TODO CELEBRITY CSV
 
 #main
 def main():
-	global log
-	log = open('cleanUpLog.txt', 'a', 1)
-	buildCelebList()
-	#f = open('celebList.json', 'w')
-	#f.write(json.dumps(celebList, indent=4))
-	#f.close()
-	getCelebs()
-	toCSV()
-	#pid = os.fork()
-	#if pid != 0:
-	#	parent()
-	#elif pid == 0:
-	#	child()
-
-# def childCommentTest():
-# 	global log, comments, posts
-# 	comments = {}
-# 	posts = {}
-# 	log = open('childLogTest.txt', 'a', 1)
-# 	if verbose:
-# 		logger("Log open.")
-# 	targetDate = datetime.datetime(2010,02,19)
-# 	loadFile(targetDate)
-# 	getComments()
-# 	writeFile(targetDate)
-# 	writeFile(targetDate, False)
-# 	comments = {}
-# 	posts = {}
-# 	getCelebs()
-# 	toCSV()
-
-# def test():
-# 	childCommentTest()
-# test()
+	pid = os.fork()
+	if pid != 0:
+		parent()
+	elif pid == 0:
+		child()
 
 main()
