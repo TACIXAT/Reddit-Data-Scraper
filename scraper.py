@@ -98,7 +98,10 @@ def fetchJSON(URL):
 	
 	#if verbose:
 		#logger('Response received.')
-	
+	if(len(response) == 0)
+		logger("Response length 0.")
+		return -1
+
 	jsonpage = json.load(response)
 	return jsonpage
 
@@ -260,7 +263,10 @@ def getMore(metaList, linkName, linkAuthor):
 			sleep(4)
 			response = -1
 
-	page = json.load(response) #get back crappy jquery flat list
+	if len(response) != 0:
+		page = json.load(response) #get back crappy jquery flat list
+	else:
+		return -1
 	#logger("%s", page)
 	proto = {'kind':'Listing', 'data':{'children':[], 'modhash':"", 'before':None, 'after':None}}
 	datar = []	#mock page
