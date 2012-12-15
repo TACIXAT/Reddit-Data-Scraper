@@ -411,11 +411,11 @@ def getCelebs():
 						url = 'http://www.reddit.com/comments/' + comments[entry]['PostID'] + '/robot/' + comments[entry]['ID'] + '/.json'
 						celebPost = fetchJSON(url)
 						while celebPost == -1:
-                            celebPost = fetchJSON(url)
-                            logger('%s', celebPost)
-                        if celebPost[1]['data']['children'] == []:
-                            logger('%s', url)
-                            continue
+							celebPost = fetchJSON(url)
+							logger('%s', celebPost)
+						if celebPost[1]['data']['children'] == []:
+							logger('%s', url)
+							continue
 						celebPost = celebPost[1]['data']['children'][0]['data']
 						comments[entry]['Celebrity'] = True
 						comments[entry]['Content'] = celebPost['body'].encode('ascii','xmlcharrefreplace')
